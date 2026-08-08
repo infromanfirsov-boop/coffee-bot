@@ -301,7 +301,7 @@ def show_qr(uid,name):
     except OSError: pass
     if not fid: return rep(f"{WARN} Не удалось создать QR.",back())
     send_image(uid,fid,f"{CARD} Ваша карта: {u['card_number']}\nПокажите этот QR бариста!")
-    return rep(f"{OK} QR отправлен выше {CARD}",back())
+    return None
 def alert_admins(text):
     for a in ADMINS:
         send_text(int(a),text)
@@ -944,15 +944,17 @@ def process_update(d,src="hook"):
             if uid and payload:
                 log.info("[+] callback %s: %s",uid,payload)
                 r=handle_callback(uid,payload,u.get("first_name",""))
-                if r["buttons"]: send_buttons(int(uid),r["text"],r["buttons"])
-                else: send_text(int(uid),r["text"])
+                if r:
+                    if r["buttons"]: send_buttons(int(uid),r["text"],r["buttons"])
+                    else: send_text(int(uid),r["text"])
             return
         inc=parse_incoming(d)
         if not inc: return
         log.info("[+] %s: %r",inc["uid"],inc["text"])
         r=handle_message(str(inc["uid"]),inc["text"],inc["name"],inc.get("payload",""))
-        if r["buttons"]: send_buttons(inc["uid"],r["text"],r["buttons"])
-        else: send_text(inc["uid"],r["text"])
+        if r:
+            if r["buttons"]: send_buttons(inc["uid"],r["text"],r["buttons"])
+            else: send_text(inc["uid"],r["text"])
     finally:
         if src=="poll" and m is not None: kv_set("last_marker",str(m))
 def poller_loop():
