@@ -929,9 +929,9 @@ def expire_loop():
         except Exception as e: log.error("[expire] %s",e)
         time.sleep(3600)
 
-def process_update(d):
+def process_update(d,src="hook"):
     m=d.get("marker")
-    if m is not None:
+    if src=="poll" and m is not None:
         try:
             if int(m)<=int(kv_get("last_marker","0")): return
         except ValueError: pass
@@ -954,7 +954,7 @@ def process_update(d):
         if r["buttons"]: send_buttons(inc["uid"],r["text"],r["buttons"])
         else: send_text(inc["uid"],r["text"])
     finally:
-        if m is not None: kv_set("last_marker",str(m))
+        if src=="poll" and m is not None: kv_set("last_marker",str(m))
 def poller_loop():
     log.info("[main] Long Polling")
     fail=0
@@ -967,7 +967,7 @@ def poller_loop():
         if fail>=5: alert_admins(f"{OK} Связь с MAX восстановлена.")
         fail=0
         try:
-            for d in ups: process_update(d)
+            for d in ups: process_update(d,"poll")
         except Exception as e: log.error("[poller] %s",e)
         time.sleep(2)
 
