@@ -306,7 +306,7 @@ def alert_admins(text):
     for a in ADMINS:
         send_text(int(a),text)
 def setup_webhook():
-    r=http.post(f"{API}/subscriptions",headers=H,timeout=10,json={"url":WEBHOOK_URL,"secret":WEBHOOK_SEC,"update_types":["message_created","bot_started","message_callback"]})
+    r=http.post(f"{API}/subscriptions",headers=H,timeout=10,json={"url":WEBHOOK_URL,"update_types":["message_created","bot_started","message_callback"]})
     if r.status_code!=200: raise RuntimeError(f"Webhook не зарегистрирован: {r.status_code}")
     log.info("[MAX] webhook OK")
 def get_updates():
