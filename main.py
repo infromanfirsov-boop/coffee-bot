@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Кофейный бонусный бот для MAX. v23.
+"""Кофейный бонусный бот для MAX. v24 FINAL.
 Эмодзи - ASCII-эскейпы. python3 main.py | qr | test
 """
 import asyncio, csv, io, logging, os, shutil, sqlite3, sys, tempfile, threading, time, uuid
@@ -306,8 +306,10 @@ def alert_admins(text):
     for a in ADMINS:
         send_text(int(a),text)
 def setup_webhook():
-    r=http.post(f"{API}/subscriptions",headers=H,timeout=10,json={"url":WEBHOOK_URL,"update_types":["message_created","bot_started","message_callback"]})
-    if r.status_code!=200: raise RuntimeError(f"Webhook не зарегистрирован: {r.status_code}")
+    payload={"url":WEBHOOK_URL,"update_types":["message_created","bot_started","message_callback"]}
+    if WEBHOOK_SEC: payload["secret"]=WEBHOOK_SEC
+    r=http.post(f"{API}/subscriptions",headers=H,timeout=10,json=payload)
+    if r.status_code!=200: raise RuntimeError(f"Webhook не зарегистрирован: {r.status_code} {r.text[:100]}")
     log.info("[MAX] webhook OK")
 def get_updates():
     try:
