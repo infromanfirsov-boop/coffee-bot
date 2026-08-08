@@ -734,12 +734,14 @@ def handle_message(uid,text,name,payload=""):
                 PENDING_PAY.clear(uid); return rep(f"{WARN} Клиент не найден.",back())
             bal=balance(target["id"])
             if amt is None:
-                if is_float(op):
-                    amount=float(op); maxpay=min(bal,int(amount*MAX_PAY/100))
-                    PENDING_PAY.set(uid,{"card":card_no,"amount":amount})
-                    btn=[[cb(f"{MINUS} {maxpay}",f"deduct_{maxpay}_{card_no}")]] if maxpay>0 else []
-                    return rep(f"{RECEIPT} Чек: {amount:.0f} р.\nМожно списать до {maxpay} баллов ({MAX_PAY}%).\nВведите число или max:",btn+cancel()+back())
-                return rep(f"{WARN} Введите сумму числом.",cancel()+back())
+                amount=None
+                for tok in p:
+                    if is_float(tok): amount=float(tok); break
+                if amount is None or amount<=0: return rep(f"{WARN} Введите сумму чека числом, например: 500",cancel()+back())
+                maxpay=min(bal,int(amount*MAX_PAY/100))
+                PENDING_PAY.set(uid,{"card":card_no,"amount":amount})
+                btn=[[cb(f"{MINUS} {maxpay}",f"deduct_{maxpay}_{card_no}")]] if maxpay>0 else []
+                return rep(f"{RECEIPT} Чек: {amount:.0f} р.\n{STAR} Баланс: {bal}\nМожно списать до {maxpay} баллов ({MAX_PAY}%).\nНажмите кнопку или введите число / max:",btn+cancel()+back())
             amount=float(amt); cap=min(bal,int(amount*MAX_PAY/100))
             if op.lower()=="max": deduct=cap
             elif op.isdigit(): deduct=int(op)
