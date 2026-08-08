@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Кофейный бонусный бот для MAX. v21.
+"""Кофейный бонусный бот для MAX. v23.
 Эмодзи - ASCII-эскейпы. python3 main.py | qr | test
 """
-import asyncio, csv, io, logging, os, shutil, sqlite3, sys, threading, time, uuid
+import asyncio, csv, io, logging, os, shutil, sqlite3, sys, tempfile, threading, time, uuid
 from collections import OrderedDict
 from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime, timedelta
@@ -13,6 +13,8 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Request
 
 load_dotenv()
+os.environ["TZ"]="Europe/Moscow"
+time.tzset()
 log = logging.getLogger("coffee_bot"); log.setLevel(logging.INFO)
 _fmt = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
 _ch = logging.StreamHandler(); _ch.setFormatter(_fmt); log.addHandler(_ch)
@@ -138,8 +140,11 @@ def do_backup():
         log.error("[backup] %s",e); return None
 def backup_loop():
     while True:
+        now=datetime.now()
+        nxt=now.replace(hour=3,minute=0,second=0,microsecond=0)
+        if nxt<=now: nxt+=timedelta(days=1)
+        time.sleep((nxt-now).total_seconds())
         do_backup()
-        time.sleep(86400)
 
 def user_exists(uid):
     with db() as c: return c.execute("SELECT 1 FROM users WHERE max_user_id=?",(uid,)).fetchone() is not None
@@ -216,6 +221,31 @@ def abc_analysis():
         cum+=r["total_spent"]; share=cum/total
         (A if share<=0.8 else B if share<=0.95 else C).append(r)
     return A,B,C,total
+def rfm_analysis():
+    now=datetime.now()
+    with db() as c: rows=c.execute("SELECT id,full_name,last_visit,visits_count,total_spent FROM users WHERE visits_count>0").fetchall()
+    if not rows: return None
+    data=[]
+    for r in rows:
+        try: lv=datetime.fromisoformat(r["last_visit"]) if r["last_visit"] else None
+        except ValueError: lv=None
+        rd=(now-lv).days if lv else 999
+        data.append({"name":r["full_name"] or str(r["id"]),"r":rd,"f":r["visits_count"],"m":r["total_spent"]})
+    def tert(v):
+        s=sorted(v); n=len(s); return s[n//3],s[2*n//3]
+    r1,r2=tert([d["r"] for d in data]); f1,f2=tert([d["f"] for d in data]); m1,m2=tert([d["m"] for d in data])
+    for d in data:
+        d["rs"]=3 if d["r"]<=r1 else 2 if d["r"]<=r2 else 1
+        d["fs"]=3 if d["f"]>=f2 else 2 if d["f"]>=f1 else 1
+        d["ms"]=3 if d["m"]>=m2 else 2 if d["m"]>=m1 else 1
+    seg={"champions":[],"loyal":[],"promising":[],"atrisk":[],"sleeping":[]}
+    for d in data:
+        if d["rs"]==3 and d["fs"]==3 and d["ms"]==3: seg["champions"].append(d)
+        elif d["fs"]>=2 and d["rs"]>=2: seg["loyal"].append(d)
+        elif d["rs"]==3 and d["fs"]<=2: seg["promising"].append(d)
+        elif d["rs"]<=2 and d["fs"]>=2: seg["atrisk"].append(d)
+        else: seg["sleeping"].append(d)
+    return seg
 def export_csv():
     with db() as c:
         rows=c.execute("SELECT u.*, COALESCE((SELECT SUM(b.points_left) FROM points_batches b WHERE b.user_id=u.id AND b.points_left>0 AND b.expires_at>?),0) bal FROM users u ORDER BY created_at DESC",(datetime.now(),)).fetchall()
@@ -245,6 +275,33 @@ def send_buttons(uid,text,buttons):
     if r is None or r.status_code!=200:
         log.error("[MAX] send_buttons fail %s",getattr(r,"status_code","-")); return False
     return True
+def upload_image(path):
+    try:
+        with open(path,"rb") as f:
+            r=http.post(f"{API}/uploads",headers={"Authorization":TOKEN},files={"data":("qr.png",f,"image/png")},params={"type":"image"},timeout=30)
+        if r.status_code!=200: return None
+        return r.json().get("file_id")
+    except Exception as e:
+        log.error("[upload] %s",e); return None
+def send_image(uid,file_id,text=""):
+    r=_post_retry(f"{API}/messages",params={"user_id":uid},json={"text":text,"attachments":[{"type":"image","payload":{"file_id":file_id}}]},headers=H,timeout=10)
+    return r is not None and r.status_code==200
+def generate_qr(card_number):
+    qr=qrcode.QRCode(box_size=8,border=2)
+    qr.add_data(card_number)
+    qr.make(fit=True)
+    img=qr.make_image(fill_color="black",back_color="white")
+    with tempfile.NamedTemporaryFile(suffix=".png",delete=False) as f:
+        img.save(f,"PNG"); return f.name
+def show_qr(uid,name):
+    u=ensure_user(uid,name)
+    path=generate_qr(u["card_number"])
+    fid=upload_image(path)
+    try: os.unlink(path)
+    except OSError: pass
+    if not fid: return rep(f"{WARN} Не удалось создать QR.",back())
+    send_image(uid,fid,f"{CARD} Ваша карта: {u['card_number']}\nПокажите этот QR бариста!")
+    return rep(f"{OK} QR отправлен выше {CARD}",back())
 def alert_admins(text):
     for a in ADMINS:
         send_text(int(a),text)
@@ -254,10 +311,12 @@ def setup_webhook():
     log.info("[MAX] webhook OK")
 def get_updates():
     try:
-        r=http.get(API+"/updates",params={"types":"message_created,bot_started,message_callback"},headers=H,timeout=25)
+        r=http.get(API+"/updates",params={"types":"message_created,bot_started,message_callback"},headers=H,timeout=70)
         if r.status_code!=200:
             log.error("[MAX] updates %s",r.status_code); return None
         d=r.json(); return d if isinstance(d,list) else d.get("updates",[])
+    except requests.exceptions.ReadTimeout:
+        return []
     except Exception as e:
         log.error("[MAX] %s",e); return None
 def _sender(d): return d.get("user") or d.get("sender") or {}
@@ -325,10 +384,10 @@ def menu(uid,name):
        f"{lvl_name(v)} · кешбэк {pct(v)}%\n{CHART} {progress_bar(v)}\n\nВыберите раздел:")
     b=[[cb(CARD+" Карта","show_card"),cb(STAR+" Баланс","show_balance")],[cb(HIST+" История","show_history"),cb(HELP+" Помощь","show_help")]]
     if not is_priv(uid):
-        b+=[[cb(MEDAL+" Награды","show_badges"),cb(HAND+" Пригласить","show_refer")]]
+        b+=[[cb(MEDAL+" Награды","show_badges"),cb(HAND+" Пригласить","show_refer")],[cb(CARD+" QR-карта","show_qr")]]
     if is_priv(uid):
         b+=[[cb(MONEY+" Кешбэк","cashflow"),cb(CARD+" Оплата баллами","payflow")],[cb(SEARCH+" Поиск","show_search"),cb(USERS+" Клиенты","show_clients")]]
-        if uid in ADMINS: b+=[[cb(CHART2+" Топ","show_top"),cb(CHART2+" ABC","show_abc"),cb(BULB+" Инсайты","show_insights")],[cb(EXPORT+" CSV","export_csv"),cb(EXPORT+" Файлы","export_files"),cb(MEGA+" Рассылка","show_broadcast")],[cb(TOOLS+" Статус","show_status")]]
+        if uid in ADMINS: b+=[[cb(CHART2+" Топ","show_top"),cb(CHART2+" ABC","show_abc"),cb(CHART2+" RFM","show_rfm")],[cb(BULB+" Инсайты","show_insights"),cb(EXPORT+" CSV","export_csv"),cb(EXPORT+" Файлы","export_files")],[cb(MEGA+" Рассылка","show_broadcast"),cb(TOOLS+" Статус","show_status")]]
     return rep(t,b)
 
 def card(u):
@@ -441,13 +500,15 @@ def do_export_files():
     with db() as c:
         users=c.execute("SELECT u.*, COALESCE((SELECT SUM(b.points_left) FROM points_batches b WHERE b.user_id=u.id AND b.points_left>0 AND b.expires_at>?),0) bal FROM users u ORDER BY created_at DESC",(now,)).fetchall()
         buys=c.execute("SELECT p.amount,p.item,p.created_at,u.full_name,u.card_number,u.phone FROM purchases p JOIN users u ON u.id=p.user_id ORDER BY p.created_at DESC").fetchall()
-    with open("clients.csv","w",newline="",encoding="utf-8-sig") as f:
+    ts=now.strftime("%Y%m%d_%H%M")
+    f1,f2=f"clients_{ts}.csv",f"purchases_{ts}.csv"
+    with open(f1,"w",newline="",encoding="utf-8-sig") as f:
         w=csv.writer(f); w.writerow(["ID","Имя","Телефон","Карта","Посещений","Потрачено","Баллы","ДР","Регистрация"])
         for r in users: w.writerow([r["id"],r["full_name"] or "",r["phone"] or "",r["card_number"],r["visits_count"],f"{r['total_spent']:.0f}",int(r["bal"]),r["birthday"],r["created_at"]])
-    with open("purchases.csv","w",newline="",encoding="utf-8-sig") as f:
+    with open(f2,"w",newline="",encoding="utf-8-sig") as f:
         w=csv.writer(f); w.writerow(["Дата","Имя","Карта","Телефон","Сумма","Товар"])
         for r in buys: w.writerow([r["created_at"],r["full_name"] or "",r["card_number"],r["phone"] or "",f"{r['amount']:.0f}",r["item"] or ""])
-    return rep(f"{EXPORT} Файлы готовы:\nclients.csv · purchases.csv\nСкачайте через WinSCP.",back())
+    return rep(f"{EXPORT} Файлы готовы:\n{f1} · {f2}\nСкачайте через WinSCP.",back())
 def do_status(uid):
     if not is_priv(uid): return rep(f"{NO} Только персонал.",back())
     with db() as c:
@@ -455,7 +516,7 @@ def do_status(uid):
         tx=c.execute("SELECT COUNT(*) n FROM transactions").fetchone()["n"]
     up=int(time.time()-_started_at)
     t=(f"{TOOLS} Статус\n\n{OK} Аптайм: {up//3600}ч {(up%3600)//60}м\n{USERS} Клиентов: {u}\n{STAR} Операций: {tx}\n"
-       f"{HOUR} Последний бэкап: {kv_get('last_backup','-')}\n{RECEIPT} БД: {os.path.getsize(DB)//1024} КБ")
+       f"{HOUR} Последний бэкап: {kv_get('last_backup','-')}\n{RECEIPT} БД: {os.path.getsize(DB)//1024} КБ\n{CHART} Режим: {'webhook' if WEBHOOK_URL else 'polling'}")
     return rep(t,back())
 def do_abc(uid):
     if uid not in ADMINS: return rep(f"{NO} Только админ.",back())
@@ -468,6 +529,19 @@ def do_abc(uid):
        f"{SILVER} B ({len(B)}): 15%\n{names(B)}\n\n"
        f"{BRONZE} C ({len(C)}): 5%\n{names(C)}\n\n"
        f"{BULB} A - внимание и ранний доступ; B - повышать частоту; C - winback-промо.")
+    return rep(t,back())
+def do_rfm(uid):
+    if uid not in ADMINS: return rep(f"{NO} Только админ.",back())
+    s=rfm_analysis()
+    if not s: return rep(f"{CHART2} Пока нет визитов для RFM.",back())
+    def names(x): return ", ".join(n["name"] for n in x[:5]) or "-"
+    t=(f"{CHART2} RFM-сегменты\n\n"
+       f"{GOLD} Чемпионы ({len(s['champions'])}): {names(s['champions'])}\n"
+       f"{STAR} Лояльные ({len(s['loyal'])}): {names(s['loyal'])}\n"
+       f"{CHART} Перспективные ({len(s['promising'])}): {names(s['promising'])}\n"
+       f"{WARN} На грани ({len(s['atrisk'])}): {names(s['atrisk'])}\n"
+       f"{HOUR} Уснувшие ({len(s['sleeping'])}): {names(s['sleeping'])}\n\n"
+       f"{BULB} Чемпионам - VIP; лояльным - частота; перспективным - 2-й визит; на грани - промо; уснувшим - winback.")
     return rep(t,back())
 def set_phone(uid,text):
     p=text.split()
@@ -561,12 +635,12 @@ def apply_cashback(target,amount,items=None):
         if items: c.executemany("INSERT INTO purchases(user_id,amount,item,receipt_id) VALUES(?,?,?,?)",[(target["id"],amount,it,rid) for it in items])
         ref=c.execute("SELECT referred_by,ref_done FROM users WHERE id=?",(target["id"],)).fetchone()
         if ref and ref["referred_by"] and not ref["ref_done"]:
-            inv=find_user(ref["referred_by"])
-            if inv:
-                _batch(c,inv["id"],REF_BONUS,"referral",HAND+" За друга")
-                c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",(inv["id"],"accrual",REF_BONUS,HAND+" За друга"))
+            inv_row=c.execute("SELECT id,max_user_id FROM users WHERE card_number=?",(ref["referred_by"],)).fetchone()
+            if inv_row:
+                _batch(c,inv_row["id"],REF_BONUS,"referral",HAND+" За друга")
+                c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",(inv_row["id"],"accrual",REF_BONUS,HAND+" За друга"))
                 c.execute("UPDATE users SET ref_done=1 WHERE id=?",(target["id"],))
-                inv_uid=inv["max_user_id"]
+                inv_uid=inv_row["max_user_id"]
         u2=c.execute("SELECT visits_count,level FROM users WHERE id=?",(target["id"],)).fetchone()
         nl=max((i for i,(n,_,_) in enumerate(LEVELS) if u2["visits_count"]>=n),default=0)
         up=nl!=u2["level"]
@@ -707,6 +781,7 @@ def handle_message(uid,text,name,payload=""):
         if cmd=="/files": return do_export_files()
         if cmd=="/status": return do_status(uid)
         if cmd=="/abc": return do_abc(uid)
+        if cmd=="/rfm": return do_rfm(uid)
         if cmd.startswith("/clients"):
             page=int(p[1])-1 if len(p)>1 and p[1].isdigit() else 0
             return clients(uid,page)
@@ -726,13 +801,13 @@ def handle_message(uid,text,name,payload=""):
     if cmd.startswith("/ref"): return do_refer(uid,p[1] if len(p)>1 else "")
     if cmd.startswith("/promo"): return promo_redeem(uid,p[1] if len(p)>1 else "")
     hint=f"{THINK} Не понял. /help - команды."
-    if is_priv(uid): hint=f"{TOOLS} Персонал:\n{MONEY} Кешбэк · {CARD} Оплата баллами\n/find 7999 · /top · /abc · /status"
+    if is_priv(uid): hint=f"{TOOLS} Персонал:\n{MONEY} Кешбэк · {CARD} Оплата баллами\n/find 7999 · /top · /abc · /rfm · /status"
     elif not u["phone"]: hint+=f"\n{PHONE} /phone · {CAKE} /bday · {TICKET} /promo · {HAND} /ref"
     return rep(hint,back())
 
 def handle_callback(uid,payload,name):
     uid=str(uid); u=ensure_user(uid,name)
-    PRIV=("cashflow","payflow","show_search","show_top","show_abc","show_status")
+    PRIV=("cashflow","payflow","show_search","show_top","show_abc","show_rfm","show_status")
     if payload in PRIV or payload.startswith(("add_","sub_","input_","cash_","pay_","sp:","deduct_","rcc_","rcp_","qa_","sel_","buy_")):
         if not is_priv(uid): return rep(f"{NO} Только персонал.",back())
     if payload in ("show_clients","export_csv","export_files","show_insights","show_broadcast") or payload.startswith("cp:"):
@@ -744,8 +819,10 @@ def handle_callback(uid,payload,name):
     if payload=="show_history": return hist(u)
     if payload=="show_badges": return badges_screen(u)
     if payload=="show_refer": return refer_screen(u)
+    if payload=="show_qr": return show_qr(uid,name)
     if payload=="show_status": return do_status(uid)
     if payload=="show_abc": return do_abc(uid)
+    if payload=="show_rfm": return do_rfm(uid)
     if payload=="show_clients": return clients(uid)
     if payload=="show_search": return do_search(uid,"")
     if payload=="show_top": return do_top(uid)
@@ -897,8 +974,14 @@ async def lifespan(app):
     init_db(); migrate()
     if not _started:
         _started=True
-        if WEBHOOK_URL: setup_webhook()
-        else: threading.Thread(target=poller_loop,daemon=True).start()
+        if WEBHOOK_URL:
+            try:
+                setup_webhook()
+            except Exception as e:
+                log.error("[webhook] %s -> polling",e)
+                threading.Thread(target=poller_loop,daemon=True).start()
+        else:
+            threading.Thread(target=poller_loop,daemon=True).start()
         threading.Thread(target=expire_loop,daemon=True).start()
         threading.Thread(target=backup_loop,daemon=True).start()
         threading.Thread(target=lambda:alert_admins(f"{OK} Бот запущен."),daemon=True).start()
