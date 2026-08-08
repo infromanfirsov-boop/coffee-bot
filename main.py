@@ -881,7 +881,7 @@ def handle_callback(uid,payload,name):
     if payload.startswith("cash_"):
         PENDING_ID.clear(uid); cn=payload[5:]; PENDING_CASH.set(uid,cn); return cash_amount_prompt(uid,cn,find_user(cn))
     if payload.startswith("pay_"):
-        PENDING_PAYID.clear(uid); cn=payload[5:]; PENDING_PAY.set(uid,{"card":cn,"amount":None}); t=find_user(cn)
+        PENDING_PAYID.clear(uid); cn=payload[4:]; PENDING_PAY.set(uid,{"card":cn,"amount":None}); t=find_user(cn)
         return rep(f"{USER} {(t['full_name'] or t['card_number']) if t else cn} · {STAR} {balance(t['id']) if t else 0}\nСумма покупки:",cancel()+back())
     return rep(f"{THINK} Неизвестно.",back())
 
