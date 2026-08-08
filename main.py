@@ -574,7 +574,9 @@ def do_search(uid,q,page=0):
     if not is_priv(uid): return rep(f"{NO} Только персонал.",back())
     if not q: return rep(f"{SEARCH} /find Иван · /find 7999 · /find COFFEE",back())
     rows,total=search(q,page)
-    if not rows: return rep(f"{SEARCH} «{q}» - не найдено.",back())
+    if not rows:
+        with db() as c: allc=[dict(r) for r in c.execute("SELECT card_number,full_name,phone FROM users ORDER BY id DESC LIMIT 6")]
+        return rep(f"{SEARCH} «{q}» - не найдено. Выберите из списка:",pick_buttons(allc,"sel")+back())
     return rep(f"{SEARCH} «{q}» · {total}\nВыберите клиента:",pick_buttons(rows,"sel")+nav("sp",page,total)+back())
 def do_export(uid):
     if uid not in ADMINS: return rep(f"{NO} Только админ.",back())
