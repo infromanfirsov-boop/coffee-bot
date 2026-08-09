@@ -12,7 +12,7 @@ import qrcode, requests, uvicorn, urllib3
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Request
 
-load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)),".env"))
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)),".env"),override=True)
 os.environ["TZ"]="Europe/Moscow"
 time.tzset()
 log = logging.getLogger("coffee_bot"); log.setLevel(logging.INFO)
