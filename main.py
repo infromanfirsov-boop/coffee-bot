@@ -321,12 +321,10 @@ def get_updates():
         return []
     except Exception as e:
         log.error("[MAX] %s",e); return None
-def _sender(d):
-    m=d.get("message") or {}
-    return d.get("user") or d.get("sender") or m.get("sender") or m.get("recipient") or {}
+def _sender(d): return d.get("user") or d.get("sender") or {}
 def parse_incoming(d):
     if d.get("update_type") not in ("message_created","bot_started"): return None
-    u=_sender(d)
+    u=_sender(d) or (d.get("message") or {}).get("sender") or {}
     if not u.get("user_id"): return None
     text="/start" if d["update_type"]=="bot_started" else ((d.get("message") or {}).get("body") or {}).get("text","")
     return {"uid":int(u["user_id"]),"text":str(text).strip(),"name":f"{u.get('first_name','')} {u.get('last_name','')}".strip(),"payload":d.get("payload","")}
