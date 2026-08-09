@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Кофейный бонусный бот для MAX. v24 FINAL.
-Эмодзи - ASCII-эскейпы. python3 main.py | qr | test
+"""Кофейный бонусный бот для MAX. v25 FINAL.
+python3 main.py | qr | test
 """
 import asyncio, csv, io, logging, os, shutil, sqlite3, sys, tempfile, threading, time, uuid
 from collections import OrderedDict
@@ -56,6 +56,7 @@ EXPIRE_DAYS=_env_int("POINTS_EXPIRE_DAYS","90"); WARN_DAYS=_env_int("POINTS_EXPI
 BDAY_BONUS=_env_int("BIRTHDAY_BONUS","200"); BDAY_DAYS=_env_int("BIRTHDAY_DAYS","3")
 MAX_PAY=_env_int("MAX_PAY_PERCENT","50"); REF_BONUS=_env_int("REFERRAL_BONUS","50")
 WINBACK_DAYS=_env_int("WINBACK_DAYS","14"); WINBACK_BONUS=_env_int("WINBACK_BONUS","50"); WINBACK_CD=_env_int("WINBACK_COOLDOWN_DAYS","30")
+REVIEW_BONUS=_env_int("REVIEW_BONUS","50")
 BACKUP_DIR=os.getenv("BACKUP_DIR","backups"); BACKUP_KEEP=_env_int("BACKUP_KEEP","7")
 if not TOKEN: log.error("MAX_BOT_TOKEN не задан!")
 def is_priv(u): return u in ADMINS or u in STAFF
@@ -98,21 +99,24 @@ def db():
     finally: c.close()
 
 SCHEMA="""
-CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY AUTOINCREMENT,max_user_id TEXT UNIQUE NOT NULL,full_name TEXT,phone TEXT,card_number TEXT UNIQUE NOT NULL,visits_count INTEGER DEFAULT 0,total_spent REAL DEFAULT 0,level INTEGER DEFAULT 0,is_admin INTEGER DEFAULT 0,last_notify TEXT DEFAULT '',birthday TEXT DEFAULT '',bday_year INTEGER DEFAULT 0,referred_by TEXT DEFAULT '',ref_done INTEGER DEFAULT 0,last_winback TEXT DEFAULT '',last_visit TIMESTAMP,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY AUTOINCREMENT,max_user_id TEXT UNIQUE NOT NULL,full_name TEXT,name_lc TEXT DEFAULT '',phone TEXT,card_number TEXT UNIQUE NOT NULL,visits_count INTEGER DEFAULT 0,total_spent REAL DEFAULT 0,level INTEGER DEFAULT 0,is_admin INTEGER DEFAULT 0,last_notify TEXT DEFAULT '',birthday TEXT DEFAULT '',bday_year INTEGER DEFAULT 0,referred_by TEXT DEFAULT '',ref_done INTEGER DEFAULT 0,last_winback TEXT DEFAULT '',last_visit TIMESTAMP,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS points_batches(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,points_left INTEGER NOT NULL,original_points INTEGER NOT NULL,source TEXT,comment TEXT,expires_at TIMESTAMP NOT NULL,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY(user_id) REFERENCES users(id));
 CREATE TABLE IF NOT EXISTS transactions(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,type TEXT NOT NULL,points INTEGER NOT NULL,comment TEXT,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY(user_id) REFERENCES users(id));
 CREATE TABLE IF NOT EXISTS purchases(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,amount REAL,item TEXT,receipt_id TEXT DEFAULT '',created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS promos(code TEXT PRIMARY KEY,points INTEGER,active INTEGER DEFAULT 1,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS promo_use(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER,code TEXT,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS review_requests(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER,status TEXT DEFAULT 'pending',created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS kv(key TEXT PRIMARY KEY,value TEXT);
-CREATE INDEX IF NOT EXISTS i_card ON users(card_number);CREATE INDEX IF NOT EXISTS i_phone ON users(phone);CREATE INDEX IF NOT EXISTS i_bu ON points_batches(user_id);CREATE INDEX IF NOT EXISTS i_be ON points_batches(expires_at);"""
+CREATE INDEX IF NOT EXISTS i_card ON users(card_number);CREATE INDEX IF NOT EXISTS i_phone ON users(phone);CREATE INDEX IF NOT EXISTS i_bu ON points_batches(user_id);CREATE INDEX IF NOT EXISTS i_be ON points_batches(expires_at);CREATE INDEX IF NOT EXISTS i_tx ON transactions(user_id);CREATE INDEX IF NOT EXISTS i_pu ON purchases(user_id);CREATE INDEX IF NOT EXISTS i_uc ON users(created_at);"""
 def init_db():
     with db() as c: c.executescript(SCHEMA)
 def migrate():
     with db() as c:
         cols=[r[1] for r in c.execute("PRAGMA table_info(users)")]
-        for col,ddl in [("birthday","TEXT DEFAULT ''"),("bday_year","INTEGER DEFAULT 0"),("last_visit","TIMESTAMP"),("referred_by","TEXT DEFAULT ''"),("ref_done","INTEGER DEFAULT 0"),("last_winback","TEXT DEFAULT ''")]:
+        for col,ddl in [("birthday","TEXT DEFAULT ''"),("bday_year","INTEGER DEFAULT 0"),("last_visit","TIMESTAMP"),("referred_by","TEXT DEFAULT ''"),("ref_done","INTEGER DEFAULT 0"),("last_winback","TEXT DEFAULT ''"),("name_lc","TEXT DEFAULT ''")]:
             if col not in cols: c.execute(f"ALTER TABLE users ADD COLUMN {col} {ddl}")
+        for r in c.execute("SELECT id,full_name FROM users WHERE full_name IS NOT NULL AND full_name!=''"):
+            c.execute("UPDATE users SET name_lc=? WHERE id=?",((r["full_name"] or "").lower(),r["id"]))
         pcols=[r[1] for r in c.execute("PRAGMA table_info(purchases)")]
         if "receipt_id" not in pcols: c.execute("ALTER TABLE purchases ADD COLUMN receipt_id TEXT DEFAULT ''")
         for r in c.execute("SELECT id,phone FROM users WHERE phone IS NOT NULL AND phone!=''"):
@@ -150,8 +154,8 @@ def user_exists(uid):
     with db() as c: return c.execute("SELECT 1 FROM users WHERE max_user_id=?",(uid,)).fetchone() is not None
 def ensure_user(uid,name="",welcome=0):
     with db() as c:
-        c.execute("INSERT OR IGNORE INTO users(max_user_id,full_name,card_number,is_admin) VALUES(?,?,?,?)",(uid,name,"COFFEE"+uuid.uuid4().hex[:8].upper(),int(uid in ADMINS)))
-        if name: c.execute("UPDATE users SET full_name=? WHERE max_user_id=? AND (full_name IS NULL OR full_name='')",(name,uid))
+        c.execute("INSERT OR IGNORE INTO users(max_user_id,full_name,name_lc,card_number,is_admin) VALUES(?,?,?,?,?)",(uid,name,(name or "").lower(),"COFFEE"+uuid.uuid4().hex[:8].upper(),int(uid in ADMINS)))
+        if name: c.execute("UPDATE users SET full_name=?,name_lc=? WHERE max_user_id=? AND (full_name IS NULL OR full_name='')",(name,(name or "").lower(),uid))
         row=c.execute("SELECT * FROM users WHERE max_user_id=?",(uid,)).fetchone()
         if welcome>0 and not c.execute("SELECT 1 FROM transactions WHERE user_id=? AND type='welcome'",(row["id"],)).fetchone():
             _batch(c,row["id"],welcome,"welcome",GIFT+" Приветственный бонус")
@@ -177,14 +181,15 @@ def spend_points(uid,points,comment=""):
 def find_user(q):
     qo=q.strip(); q=qo.lower()
     with db() as c:
-        r=c.execute("SELECT * FROM users WHERE LOWER(card_number)=? OR max_user_id=?",(q,qo)).fetchone()
+        r=c.execute("SELECT * FROM users WHERE card_number=? OR max_user_id=?",(qo,qo)).fetchone()
         if r: return dict(r)
-        d="".join(ch for ch in q if ch.isdigit())[-10:]
-        if len(d)>=10:
-            r=c.execute("SELECT * FROM users WHERE phone LIKE ?",(f"%{d}",)).fetchone()
-            if r: return dict(r)
-        r=c.execute("SELECT * FROM users WHERE LOWER(full_name) LIKE ?",(f"%{q}",)).fetchone()
-        if r: return dict(r)
+        rows=[dict(r) for r in c.execute("SELECT * FROM users")]
+    d="".join(ch for ch in q if ch.isdigit())[-10:]
+    if len(d)>=10:
+        for r in rows:
+            if (r["phone"] or "").endswith(d): return r
+    for r in rows:
+        if q in (r["name_lc"] or (r["full_name"] or "").lower()): return r
     return None
 def history(uid,limit=10):
     with db() as c: return [dict(r) for r in c.execute("SELECT type,points,comment,created_at FROM transactions WHERE user_id=? ORDER BY created_at DESC LIMIT ?",(uid,limit))]
@@ -201,17 +206,17 @@ def top_items(limit=10):
     with db() as c: return [dict(r) for r in c.execute("SELECT item,COUNT(*) cnt,COALESCE(SUM(amount),0) rev FROM purchases WHERE item!='' GROUP BY item ORDER BY cnt DESC LIMIT ?",(limit,))]
 def search(q,page=0):
     q=q.strip().lower(); d="".join(ch for ch in q if ch.isdigit())
-    with db() as c:
+    with db() as c: rows=[dict(r) for r in c.execute("SELECT * FROM users ORDER BY created_at DESC")]
+    def match(r):
+        if not q: return True
         if d and len(d)>=4:
-            v1=d[-10:]; v2=("7"+d[1:])[-10:] if d[0]=="8" else d[-10:]
-            cond="phone LIKE ? OR phone LIKE ?"; arg=(f"%{v1}%",f"%{v2}%")
-        elif q.startswith("coffee"):
-            cond="LOWER(card_number) LIKE ?"; arg=(f"%{q}%",)
-        else:
-            cond="LOWER(full_name) LIKE ?"; arg=(f"%{q}%",)
-        total=c.execute(f"SELECT COUNT(*) FROM users WHERE {cond}",arg).fetchone()[0]
-        rows=[dict(r) for r in c.execute(f"SELECT * FROM users WHERE {cond} ORDER BY created_at DESC LIMIT 10 OFFSET ?",arg+(page*10,))]
-    return rows,total
+            ph=r["phone"] or ""
+            v2=("7"+d[1:])[-10:] if d[0]=="8" else d[-10:]
+            return d[-10:] in ph or v2 in ph
+        if q.startswith("coffee"): return q in (r["card_number"] or "").lower()
+        return q in (r["name_lc"] or (r["full_name"] or "").lower())
+    flt=[r for r in rows if match(r)]
+    return flt[page*10:(page+1)*10],len(flt)
 def abc_analysis():
     with db() as c: rows=c.execute("SELECT id,full_name,total_spent FROM users WHERE total_spent>0 ORDER BY total_spent DESC").fetchall()
     total=sum(r["total_spent"] for r in rows)
@@ -302,6 +307,15 @@ def show_qr(uid,name):
     if not fid: return rep(f"{WARN} Не удалось создать QR.",back())
     send_image(uid,fid,f"{CARD} Ваша карта: {u['card_number']}\nПокажите этот QR бариста!")
     return None
+def photo_of(d):
+    m=d.get("message") or {}
+    for a in (m.get("attachments") or []):
+        p=a.get("payload") or {}
+        if a.get("type") in ("image","photo") or p.get("url"):
+            url=p.get("url") or (p.get("photo") or {}).get("url")
+            fid=p.get("file_id") or (p.get("photo") or {}).get("file_id")
+            if url or fid: return url,fid
+    return None,None
 def alert_admins(text):
     for a in ADMINS:
         send_text(int(a),text)
@@ -327,7 +341,7 @@ def parse_incoming(d):
     u=_sender(d) or (d.get("message") or {}).get("sender") or {}
     if not u.get("user_id"): return None
     text="/start" if d["update_type"]=="bot_started" else ((d.get("message") or {}).get("body") or {}).get("text","")
-    return {"uid":int(u["user_id"]),"text":str(text).strip(),"name":f"{u.get('first_name','')} {u.get('last_name','')}".strip(),"payload":d.get("payload","")}
+    return {"uid":int(u["user_id"]),"text":str(text).strip(),"name":f"{u.get('first_name','')} {u.get('last_name','')}".strip(),"payload":d.get("payload",""),"photo":photo_of(d)}
 
 class Dedup:
     def __init__(s,size=5000): s.size,s.d,s.lock=size,OrderedDict(),threading.Lock()
@@ -350,7 +364,7 @@ class Pending:
             s.d.pop(u,None); return None
     def clear(s,u):
         with s.lock: s.d.pop(u,None)
-PENDING=Pending(); PENDING_CASH=Pending(); PENDING_ID=Pending(); PENDING_PAYID=Pending(); PENDING_PAY=Pending(); ONBOARD=Pending()
+PENDING=Pending(); PENDING_CASH=Pending(); PENDING_ID=Pending(); PENDING_PAYID=Pending(); PENDING_PAY=Pending(); ONBOARD=Pending(); PENDING_CHECK=Pending(); PENDING_SEARCH=Pending(); PENDING_REVIEW=Pending()
 
 def cb(t,p): return {"type":"callback","text":t,"payload":p}
 def back(): return [[cb(BACK+" Меню","show_menu")]]
@@ -386,9 +400,9 @@ def menu(uid,name):
        f"{lvl_name(v)} · кешбэк {pct(v)}%\n{CHART} {progress_bar(v)}\n\nВыберите раздел:")
     b=[[cb(CARD+" Карта","show_card"),cb(STAR+" Баланс","show_balance")],[cb(HIST+" История","show_history"),cb(HELP+" Помощь","show_help")]]
     if not is_priv(uid):
-        b+=[[cb(MEDAL+" Награды","show_badges"),cb(HAND+" Пригласить","show_refer")],[cb(CARD+" QR-карта","show_qr")]]
+        b+=[[cb(MEDAL+" Награды","show_badges"),cb(HAND+" Пригласить","show_refer")],[cb(CARD+" QR-карта","show_qr"),cb(STAR+" Отзыв","show_review")]]
     if is_priv(uid):
-        b+=[[cb(MONEY+" Кешбэк","cashflow"),cb(CARD+" Оплата баллами","payflow")],[cb(SEARCH+" Поиск","show_search"),cb(USERS+" Клиенты","show_clients")]]
+        b+=[[cb(RECEIPT+" Чек","checkflow")],[cb(SEARCH+" Поиск","show_search"),cb(USERS+" Клиенты","show_clients")]]
         if uid in ADMINS: b+=[[cb(CHART2+" Топ","show_top"),cb(CHART2+" ABC","show_abc"),cb(CHART2+" RFM","show_rfm")],[cb(BULB+" Инсайты","show_insights"),cb(EXPORT+" CSV","export_csv"),cb(EXPORT+" Файлы","export_files")],[cb(MEGA+" Рассылка","show_broadcast"),cb(TOOLS+" Статус","show_status")]]
     return rep(t,b)
 
@@ -424,11 +438,12 @@ def help_screen(u):
        f"{CARD} Оплачивайте баллами до {MAX_PAY}% чека\n"
        f"{HOUR} Баллы действуют {EXPIRE_DAYS} дней\n"
        f"{CAKE} В день рождения дарим {BDAY_BONUS} баллов (сгорят через {BDAY_DAYS} дн.)\n"
-       f"{HAND} Приведи друга - получи {REF_BONUS} баллов\n\n"
+       f"{HAND} Приведи друга - получи {REF_BONUS} баллов\n"
+       f"{STAR} Отзыв с фото - {REVIEW_BONUS} баллов после проверки\n\n"
        f"{CHART} Уровни:\n")
     for n,nm,p in LEVELS:
         t+=f"{nm} - {p}%"+(f" (от {n} визитов)" if n else "")+"\n"
-    t+=f"\n{PHONE} /phone · {CAKE} /bday · {TICKET} /promo КОД · {HAND} /ref КОД"
+    t+=f"\n{PHONE} /phone · {CAKE} /bday · {TICKET} /promo КОД · {HAND} /ref КОД · {STAR} /review"
     return rep(t,back())
 def badges_of(u):
     b=[]; v=u["visits_count"]
@@ -440,6 +455,8 @@ def badges_of(u):
     if u["total_spent"]>=5000: b.append(f"{MONEY} Гурман")
     with db() as c: fr=c.execute("SELECT COUNT(*) FROM users WHERE referred_by=?",(u["card_number"],)).fetchone()[0]
     if fr: b.append(f"{HAND} Друг кофейни ({fr})")
+    with db() as c: rv=c.execute("SELECT COUNT(*) FROM review_requests WHERE user_id=? AND status='ok'",(u["id"],)).fetchone()[0]
+    if rv: b.append(f"{STAR} За отзыв ({rv})")
     return b
 def badges_screen(u):
     b=badges_of(u)
@@ -447,6 +464,29 @@ def badges_screen(u):
     return rep(f"{MEDAL} Ваши награды:\n\n"+"\n".join("• "+x for x in b),back())
 def refer_screen(u):
     return rep(f"{HAND} Приведи друга!\n\nТвой код: {u['card_number']}\nДруг вводит: /ref {u['card_number']}\n\nТы получишь {REF_BONUS} баллов после его первого визита.",back())
+def review_screen(u):
+    PENDING_REVIEW.set(u["max_user_id"],"1")
+    return rep(f"{STAR} Оставьте отзыв о кофейне (Яндекс/2ГИС) и пришлите сюда скриншот.\nПосле проверки начислим {REVIEW_BONUS} баллов!",cancel()+back())
+def submit_review(uid,photo):
+    url,fid=photo or (None,None)
+    with db() as c:
+        row=c.execute("SELECT id FROM users WHERE max_user_id=?",(uid,)).fetchone()
+        if row: c.execute("INSERT INTO review_requests(user_id,status) VALUES(?,'pending')",(row["id"],))
+    for a in ADMINS:
+        aid=int(a); sent=False
+        if fid: sent=send_image(aid,fid,f"{STAR} Клиент прислал отзыв! Проверьте:")
+        elif url:
+            try:
+                r=http.get(url,timeout=20)
+                with tempfile.NamedTemporaryFile(suffix=".png",delete=False) as f: f.write(r.content); path=f.name
+                up=upload_image(path)
+                try: os.unlink(path)
+                except OSError: pass
+                if up: sent=send_image(aid,up,f"{STAR} Клиент прислал отзыв! Проверьте:")
+            except Exception: sent=False
+        if not sent: send_text(aid,f"{STAR} Клиент прислал отзыв (скрин не переслался). Проверьте на платформе.")
+        send_buttons(aid,f"{STAR} Отзыв клиента. Начислить {REVIEW_BONUS}?",[[cb(OK+" Начислить",f"review_ok_{uid}"),cb(CROSS+" Нет",f"review_no_{uid}")]])
+    return rep(f"{OK} Спасибо! Отзыв на проверке. Начислим {REVIEW_BONUS} после подтверждения.",back())
 def do_refer(uid,code):
     inv=find_user(code)
     if not inv: return rep(f"{SEARCH} Код не найден.",back())
@@ -616,7 +656,7 @@ def admin_card(u):
     if items: txt+=f"\n{BAG} Покупает: {', '.join(items)}"
     b=[[cb(PLUS+"50",f"add_50_{u['card_number']}"),cb(PLUS+"100",f"add_100_{u['card_number']}"),cb(PLUS+"200",f"add_200_{u['card_number']}")],
        [cb(MINUS+"50",f"sub_50_{u['card_number']}"),cb(MINUS+"100",f"sub_100_{u['card_number']}"),cb(MINUS+"200",f"sub_200_{u['card_number']}")],
-       [cb(MONEY+" Кешбэк",f"cash_{u['card_number']}"),cb(CARD+" Оплата",f"pay_{u['card_number']}"),cb(BAG+" Покупки",f"buy_{u['card_number']}")]]+back()
+       [cb(RECEIPT+" Чек",f"chk_{u['card_number']}"),cb(BAG+" Покупки",f"buy_{u['card_number']}")]]+back()
     return rep(txt,b)
 def apply_delta(uid,delta,target,comment=""):
     if delta>0:
@@ -655,6 +695,25 @@ def apply_cashback(target,amount,items=None):
     msg=f"{OK} Кешбэк начислен!\n\n{RECEIPT} Чек: {amount:.0f} р.\n{lvl_name(v)} · +{pts} баллов\n{STAR} Баланс: {balance(target['id'])}"
     if up: msg+=f"\n\n{PARTY} Новый уровень: {lvl_name(v)} · {pct(v)}%!"
     return rep(msg,back())
+def check_prompt_amount(uid,cn,t):
+    return rep(f"{RECEIPT} {t['full_name'] if t else cn}\nСумма чека и товары, например: 600 латте, круассан",cancel()+back())
+def check_confirm(uid,cn,amount,items):
+    t=find_user(cn); bal=balance(t["id"]) if t else 0
+    pts=int(amount*pct(t["visits_count"])/100) if t else 0
+    cap=min(bal,int(amount*MAX_PAY/100))
+    btn=[[cb(f"{MINUS} {cap}",f"ckd_{cap}_{cn}"),cb("Без баллов",f"ckn_{cn}")]] if cap>0 else [[cb("Без баллов",f"ckn_{cn}")]]
+    return rep(f"{RECEIPT} Чек: {amount:.0f} р.\n{MONEY} Кешбэк: +{pts}\n{STAR} Баланс: {bal} · списать до {cap}?\nВыберите:",btn+cancel()+back())
+def check_finalize(uid,cn,amount,items,deduct):
+    t=find_user(cn)
+    if not t: return rep(f"{WARN} не найден",back())
+    pre=""
+    if deduct>0:
+        ok,nb=spend_points(t["id"],deduct,f"{CARD} Оплата баллами")
+        if not ok: return rep(f"{WARN} Не хватило баллов",back())
+        pre=f"{CARD} Списано {deduct}\n"
+    r=apply_cashback(t,amount,items)
+    r["text"]=pre+r["text"]; PENDING_CHECK.clear(uid)
+    return r
 def cash_amount_prompt(uid,cn,t):
     btn=chunk([cb("300",f"qa_300_{cn}"),cb("500",f"qa_500_{cn}"),cb("700",f"qa_700_{cn}"),cb("1000",f"qa_1000_{cn}")])
     return rep(f"{MONEY} {t['full_name'] if t else cn} · кешбэк {pct(t['visits_count']) if t else 0}%\nСумма чека (товары через запятую) или кнопка:",btn+cancel()+back())
@@ -679,7 +738,7 @@ def handle_onboard(uid,text,name=""):
             with db() as c:
                 if c.execute("SELECT 1 FROM users WHERE phone=? AND max_user_id!=?",(d,uid)).fetchone():
                     return rep(f"{WARN} Номер уже привязан к другой карте. Другой или «пропустить».",cancel())
-                c.execute("UPDATE users SET phone=? WHERE max_user_id=?",(d,uid))
+                c.execute("UPDATE users SET phone=?,name_lc=name_lc WHERE max_user_id=?",(d,uid))
             ONBOARD.set(uid,{"step":"bday"}); return rep(f"{PHONE} Сохранено!\n{CAKE} Дата рождения: 15.05 (или «пропустить»):",cancel())
         return rep(f"{WARN} Пример: 79991234567 (или «пропустить»)",cancel())
     if ob["step"]=="bday":
@@ -695,29 +754,34 @@ def handle_onboard(uid,text,name=""):
         ONBOARD.clear(uid); return menu(uid,name)
     ONBOARD.clear(uid); return menu(uid,name)
 
-def handle_message(uid,text,name,payload=""):
+def handle_message(uid,text,name,payload="",photo=None):
     uid=str(uid); t=text.strip(); p=t.split(); cmd=t.lower()
     if name:
-        with db() as c: c.execute("UPDATE users SET full_name=? WHERE max_user_id=? AND (full_name IS NULL OR full_name='')",(name,uid))
+        with db() as c: c.execute("UPDATE users SET full_name=?,name_lc=? WHERE max_user_id=? AND (full_name IS NULL OR full_name='')",(name,(name or "").lower(),uid))
     if payload=="show_card": return card(ensure_user(uid,name,WELCOME if not is_priv(uid) else 0))
     if payload.startswith("ref_"):
         if not user_exists(uid): ensure_user(uid,name,WELCOME)
         return do_refer(uid,payload[4:])
     if cmd in ("/start","/help"):
         if cmd=="/start":
-            for P in (PENDING,PENDING_CASH,PENDING_ID,PENDING_PAYID,PENDING_PAY): P.clear(uid)
+            for P in (PENDING,PENDING_CASH,PENDING_ID,PENDING_PAYID,PENDING_PAY,PENDING_CHECK,PENDING_SEARCH,PENDING_REVIEW): P.clear(uid)
         ONBOARD.clear(uid); return menu(uid,name)
     ob=ONBOARD.get(uid)
     if ob and not is_priv(uid):
         if t.lower() in ("отмена","cancel","/cancel"):
             ONBOARD.clear(uid); return rep(f"{CROSS} Отменено.",back())
         return handle_onboard(uid,t,name)
+    if PENDING_REVIEW.get(uid):
+        PENDING_REVIEW.clear(uid)
+        return submit_review(uid,photo)
     if is_priv(uid) and p:
         op=p[0]
         if t.lower() in ("отмена","cancel","/cancel","/menu"):
-            for P in (PENDING,PENDING_CASH,PENDING_ID,PENDING_PAYID,PENDING_PAY): P.clear(uid)
+            for P in (PENDING,PENDING_CASH,PENDING_ID,PENDING_PAYID,PENDING_PAY,PENDING_CHECK,PENDING_SEARCH): P.clear(uid)
             if t.lower()=="/menu": return menu(uid,name)
             return rep(f"{CROSS} Действие отменено.",back())
+        if PENDING_SEARCH.get(uid) and not op.startswith("/"):
+            PENDING_SEARCH.clear(uid); return do_search(uid,t)
         if PENDING_ID.get(uid):
             target=find_user(op)
             if target:
@@ -754,6 +818,24 @@ def handle_message(uid,text,name,payload=""):
             ok,nb=spend_points(target["id"],deduct,f"{CARD} Оплата баллами")
             PENDING_PAY.clear(uid)
             return rep(f"{OK} Списано {deduct}\nОстаток: {STAR} {nb}",back()) if ok else rep(f"{WARN} Не хватило баллов",back())
+        chk=PENDING_CHECK.get(uid)
+        if chk is not None and chk.get("card") is None:
+            target=find_user(op)
+            if target:
+                chk["card"]=target["card_number"]; PENDING_CHECK.set(uid,chk)
+                return check_prompt_amount(uid,target["card_number"],target)
+            return rep(f"{SEARCH} не найден.",cancel()+back())
+        if chk is not None and chk.get("card") and chk.get("amount") is None:
+            amount=None
+            for tok in p:
+                if is_float(tok): amount=float(tok); break
+            if amount is None or amount<=0: return rep(f"{WARN} Введите сумму чека числом.",cancel()+back())
+            items=[]
+            for tok in p:
+                if is_float(tok): continue
+                items+=[x.strip().lower() for x in tok.split(",") if x.strip()]
+            chk["amount"]=amount; chk["items"]=items; PENDING_CHECK.set(uid,chk)
+            return check_confirm(uid,chk["card"],amount,items)
         if len(op)>1 and op[0] in "+-" and op[1:].isdigit():
             delta=int(op)
             if delta!=0:
@@ -805,18 +887,19 @@ def handle_message(uid,text,name,payload=""):
     if cmd.startswith("/phone"): return set_phone(uid,t)
     if cmd.startswith("/bday"): return set_bday(uid,t)
     if cmd.startswith("/ref"): return do_refer(uid,p[1] if len(p)>1 else "")
+    if cmd.startswith("/review"): return review_screen(u)
     if cmd.startswith("/promo"): return promo_redeem(uid,p[1] if len(p)>1 else "")
     hint=f"{THINK} Не понял. /help - команды."
-    if is_priv(uid): hint=f"{TOOLS} Персонал:\n{MONEY} Кешбэк · {CARD} Оплата баллами\n/find 7999 · /top · /abc · /rfm · /status"
-    elif not u["phone"]: hint+=f"\n{PHONE} /phone · {CAKE} /bday · {TICKET} /promo · {HAND} /ref"
+    if is_priv(uid): hint=f"{TOOLS} Персонал:\n{RECEIPT} Чек · {SEARCH} Поиск\n/find 7999 · /top · /abc · /rfm · /status"
+    elif not u["phone"]: hint+=f"\n{PHONE} /phone · {CAKE} /bday · {TICKET} /promo · {HAND} /ref · {STAR} /review"
     return rep(hint,back())
 
 def handle_callback(uid,payload,name):
     uid=str(uid); u=ensure_user(uid,name)
-    PRIV=("cashflow","payflow","show_search","show_top","show_abc","show_rfm","show_status")
-    if payload in PRIV or payload.startswith(("add_","sub_","input_","cash_","pay_","sp:","deduct_","rcc_","rcp_","qa_","sel_","buy_")):
+    PRIV=("cashflow","payflow","show_search","show_top","show_abc","show_rfm","show_status","checkflow")
+    if payload in PRIV or payload.startswith(("add_","sub_","input_","cash_","pay_","sp:","deduct_","rcc_","rcp_","qa_","sel_","buy_","ck_","chk_","ckd_","ckn_")):
         if not is_priv(uid): return rep(f"{NO} Только персонал.",back())
-    if payload in ("show_clients","export_csv","export_files","show_insights","show_broadcast") or payload.startswith("cp:"):
+    if payload in ("show_clients","export_csv","export_files","show_insights","show_broadcast") or payload.startswith(("cp:","review_ok_","review_no_")):
         if uid not in ADMINS: return rep(f"{NO} Только админ.",back())
     if payload=="show_menu": return menu(uid,name)
     if payload=="show_help": return help_screen(u)
@@ -825,17 +908,33 @@ def handle_callback(uid,payload,name):
     if payload=="show_history": return hist(u)
     if payload=="show_badges": return badges_screen(u)
     if payload=="show_refer": return refer_screen(u)
+    if payload=="show_review": return review_screen(u)
     if payload=="show_qr": return show_qr(uid,name)
     if payload=="show_status": return do_status(uid)
     if payload=="show_abc": return do_abc(uid)
     if payload=="show_rfm": return do_rfm(uid)
     if payload=="show_clients": return clients(uid)
-    if payload=="show_search": return do_search(uid,"")
+    if payload=="show_search":
+        PENDING_SEARCH.set(uid,"1"); return do_search(uid,"")
     if payload=="show_top": return do_top(uid)
     if payload=="show_insights": return do_insights(uid)
     if payload=="show_broadcast": return rep(f"{MEGA} Рассылка\n/broadcast [all|active|sleep] текст\n\nall - всем\nactive - были за 30 дн\nsleep - уснувшие",back())
     if payload=="export_csv": return do_export(uid)
     if payload=="export_files": return do_export_files()
+    if payload.startswith("review_ok_"):
+        ru=payload[len("review_ok_"):]
+        with db() as c:
+            row=c.execute("SELECT id FROM users WHERE max_user_id=?",(ru,)).fetchone()
+            if row:
+                _batch(c,row["id"],REVIEW_BONUS,"review",STAR+" За отзыв")
+                c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",(row["id"],"accrual",REVIEW_BONUS,STAR+" За отзыв"))
+                c.execute("UPDATE review_requests SET status='ok' WHERE user_id=?",(row["id"],))
+        send_text(int(ru),f"{PARTY} Отзыв подтверждён! +{REVIEW_BONUS} баллов {STAR}")
+        return rep(f"{OK} Начислено {REVIEW_BONUS}.",back())
+    if payload.startswith("review_no_"):
+        ru=payload[len("review_no_"):]
+        send_text(int(ru),f"{WARN} Пока не можем начислить баллы за отзыв. Убедитесь, что он опубликован.")
+        return rep(f"{OK} Отклонено.",back())
     if payload.startswith("sel_"):
         target=find_user(payload[4:])
         return admin_card(target) if target else rep(f"{WARN} Не найден.",back())
@@ -845,6 +944,23 @@ def handle_callback(uid,payload,name):
         buys=purchases_of(target["id"],10)
         if not buys: return rep(f"{BAG} Покупок пока нет.",back())
         return rep(f"{BAG} {target['full_name'] or target['card_number']}:\n"+"\n".join(f"· {b['amount']:.0f} р. - {b['items']}" for b in buys),back())
+    if payload=="checkflow":
+        PENDING_CHECK.set(uid,{"card":None,"amount":None,"items":None})
+        return rep(f"{RECEIPT} Чек\nВыберите клиента или введите телефон/карту/имя:",recent_buttons("ck")+cancel()+back())
+    if payload.startswith("chk_") or payload.startswith("ck_"):
+        cn=payload[4:] if payload.startswith("chk_") else payload[3:]
+        PENDING_CHECK.set(uid,{"card":cn,"amount":None,"items":None}); return check_prompt_amount(uid,cn,find_user(cn))
+    if payload.startswith("ckd_") or payload.startswith("ckn_"):
+        if payload.startswith("ckd_"):
+            parts=payload.split("_",2)
+            try: deduct=int(parts[1])
+            except ValueError: deduct=0
+            cn=parts[2]
+        else:
+            deduct=0; cn=payload[4:]
+        chk=PENDING_CHECK.get(uid) or {}
+        if not chk.get("amount"): return rep(f"{WARN} Сначала сумма.",back())
+        return check_finalize(uid,cn,chk["amount"],chk.get("items"),deduct)
     if payload.startswith("cashflow"):
         PENDING_ID.set(uid,"1")
         return rep(f"{MONEY} Кешбэк\nВыберите клиента или введите телефон/карту/имя:",recent_buttons("rcc")+cancel()+back())
@@ -852,7 +968,7 @@ def handle_callback(uid,payload,name):
         PENDING_PAYID.set(uid,"1")
         return rep(f"{CARD} Оплата баллами\nВыберите клиента или введите телефон/карту/имя:",recent_buttons("rcp")+cancel()+back())
     if payload=="cancel_pending":
-        for P in (PENDING,PENDING_CASH,PENDING_ID,PENDING_PAYID,PENDING_PAY,ONBOARD): P.clear(uid)
+        for P in (PENDING,PENDING_CASH,PENDING_ID,PENDING_PAYID,PENDING_PAY,ONBOARD,PENDING_CHECK,PENDING_SEARCH,PENDING_REVIEW): P.clear(uid)
         return rep(f"{CROSS} Отменено.",back())
     if payload.startswith("rcc_"):
         PENDING_ID.clear(uid); cn=payload[4:]; PENDING_CASH.set(uid,cn); return cash_amount_prompt(uid,cn,find_user(cn))
@@ -954,7 +1070,7 @@ def process_update(d,src="hook"):
         inc=parse_incoming(d)
         if not inc: return
         log.info("[+] %s: %r",inc["uid"],inc["text"])
-        r=handle_message(str(inc["uid"]),inc["text"],inc["name"],inc.get("payload",""))
+        r=handle_message(str(inc["uid"]),inc["text"],inc["name"],inc.get("payload",""),inc.get("photo"))
         if r:
             if r["buttons"]: send_buttons(inc["uid"],r["text"],r["buttons"])
             else: send_text(inc["uid"],r["text"])
@@ -1020,6 +1136,7 @@ def self_test():
     assert pct(0)==3 and pct(10)==5 and pct(30)==7 and pct(60)==10
     assert progress_bar(5).endswith("5/10")
     assert is_float("500") and not is_float("abc")
+    assert "алексей" in "Алексей".lower()
     print("SELF-TEST OK")
 if __name__=="__main__":
     if len(sys.argv)>1 and sys.argv[1]=="qr": make_table_qr()
