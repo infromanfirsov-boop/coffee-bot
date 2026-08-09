@@ -1116,6 +1116,15 @@ def assets(name:str):
     p=os.path.join(os.path.dirname(os.path.abspath(__file__)),"site",name)
     if os.path.isfile(p): return FileResponse(p)
     raise HTTPException(404,"Not found")
+@app.get("/api/card")
+def api_card(phone:str=""):
+    d="".join(ch for ch in phone if ch.isdigit())
+    if len(d)<4: return {"ok":False}
+    with db() as c:
+        r=c.execute("SELECT id,visits_count FROM users WHERE phone LIKE ?",(f"%{d[-10:]}",)).fetchone()
+        if not r: return {"ok":False}
+        bal=balance(r["id"]); v=r["visits_count"]
+    return {"ok":True,"points":bal,"visits":v,"level":lvl_name(v),"pct":pct(v)}
 @app.get("/health")
 def health(): return {"status":"ok"}
 @app.get("/",response_class=HTMLResponse)
