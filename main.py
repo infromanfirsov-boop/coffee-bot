@@ -12,7 +12,7 @@ import qrcode, requests, uvicorn, urllib3
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Request
 
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)),".env"))
 os.environ["TZ"]="Europe/Moscow"
 time.tzset()
 log = logging.getLogger("coffee_bot"); log.setLevel(logging.INFO)
@@ -938,7 +938,8 @@ def process_update(d,src="hook"):
             if int(m)<=int(kv_get("last_marker","0")): return
         except ValueError: pass
     key=m if m is not None else (d.get("update_type"),d.get("timestamp"),_sender(d).get("user_id"),((d.get("message") or {}).get("body") or {}).get("text",""))
-    if DEDUP.seen(key): return
+    if DEDUP.seen(key):
+        log.info("[skip] dedup %s",key); return
     try:
         if d.get("update_type")=="message_callback":
             u=_sender(d); uid=u.get("user_id") or ((d.get("message") or {}).get("recipient") or {}).get("user_id")
@@ -1002,6 +1003,7 @@ async def webhook(request:Request,x_max_bot_api_secret:str|None=Header(default=N
     if WEBHOOK_SEC and x_max_bot_api_secret!=WEBHOOK_SEC: raise HTTPException(401,"Bad signature")
     try: d=await request.json()
     except Exception: raise HTTPException(400,"Bad JSON")
+    log.info("[webhook] in: %s marker=%s",d.get("update_type"),d.get("marker"))
     await asyncio.to_thread(process_update,d)
     return {"ok":True}
 
