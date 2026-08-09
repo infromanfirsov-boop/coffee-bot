@@ -11,6 +11,7 @@ from logging.handlers import RotatingFileHandler
 import qrcode, requests, uvicorn, urllib3
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi.responses import HTMLResponse, FileResponse
 
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)),".env"),override=True)
 os.environ["TZ"]="Europe/Moscow"
@@ -1110,8 +1111,20 @@ async def lifespan(app):
         threading.Thread(target=lambda:alert_admins(f"{OK} Бот запущен."),daemon=True).start()
     yield
 app=FastAPI(lifespan=lifespan)
-@app.get("/")
+@app.get("/assets/{name}")
+def assets(name:str):
+    p=os.path.join(os.path.dirname(os.path.abspath(__file__)),"site",name)
+    if os.path.isfile(p): return FileResponse(p)
+    raise HTTPException(404,"Not found")
+@app.get("/health")
 def health(): return {"status":"ok"}
+@app.get("/",response_class=HTMLResponse)
+def index():
+    p=os.path.join(os.path.dirname(os.path.abspath(__file__)),"site","index.html")
+    try:
+        with open(p,encoding="utf-8") as f: return f.read()
+    except OSError:
+        return "<h1>Утро ☕ сайт скоро откроется</h1>"
 @app.post("/max/webhook")
 async def webhook(request:Request,x_max_bot_api_secret:str|None=Header(default=None)):
     if WEBHOOK_SEC and x_max_bot_api_secret!=WEBHOOK_SEC: raise HTTPException(401,"Bad signature")
