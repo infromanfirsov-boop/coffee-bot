@@ -321,7 +321,9 @@ def get_updates():
         return []
     except Exception as e:
         log.error("[MAX] %s",e); return None
-def _sender(d): return d.get("user") or d.get("sender") or {}
+def _sender(d):
+    m=d.get("message") or {}
+    return d.get("user") or d.get("sender") or m.get("sender") or m.get("recipient") or {}
 def parse_incoming(d):
     if d.get("update_type") not in ("message_created","bot_started"): return None
     u=_sender(d)
