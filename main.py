@@ -183,13 +183,12 @@ def find_user(q):
     with db() as c:
         r=c.execute("SELECT * FROM users WHERE card_number=? OR max_user_id=?",(qo,qo)).fetchone()
         if r: return dict(r)
-        rows=[dict(r) for r in c.execute("SELECT * FROM users")]
-    d="".join(ch for ch in q if ch.isdigit())[-10:]
-    if len(d)>=10:
-        for r in rows:
-            if (r["phone"] or "").endswith(d): return r
-    for r in rows:
-        if q in (r["name_lc"] or (r["full_name"] or "").lower()): return r
+        d="".join(ch for ch in q if ch.isdigit())
+        if len(d)>=4:
+            r=c.execute("SELECT * FROM users WHERE phone LIKE ?",(f"%{d[-10:]}",)).fetchone()
+            if r: return dict(r)
+        r=c.execute("SELECT * FROM users WHERE name_lc LIKE ?",(f"%{q}%",)).fetchone()
+        if r: return dict(r)
     return None
 def history(uid,limit=10):
     with db() as c: return [dict(r) for r in c.execute("SELECT type,points,comment,created_at FROM transactions WHERE user_id=? ORDER BY created_at DESC LIMIT ?",(uid,limit))]
@@ -206,17 +205,17 @@ def top_items(limit=10):
     with db() as c: return [dict(r) for r in c.execute("SELECT item,COUNT(*) cnt,COALESCE(SUM(amount),0) rev FROM purchases WHERE item!='' GROUP BY item ORDER BY cnt DESC LIMIT ?",(limit,))]
 def search(q,page=0):
     q=q.strip().lower(); d="".join(ch for ch in q if ch.isdigit())
-    with db() as c: rows=[dict(r) for r in c.execute("SELECT * FROM users ORDER BY created_at DESC")]
-    def match(r):
-        if not q: return True
+    with db() as c:
         if d and len(d)>=4:
-            ph=r["phone"] or ""
-            v2=("7"+d[1:])[-10:] if d[0]=="8" else d[-10:]
-            return d[-10:] in ph or v2 in ph
-        if q.startswith("coffee"): return q in (r["card_number"] or "").lower()
-        return q in (r["name_lc"] or (r["full_name"] or "").lower())
-    flt=[r for r in rows if match(r)]
-    return flt[page*10:(page+1)*10],len(flt)
+            v1=d[-10:]; v2=("7"+d[1:])[-10:] if d[0]=="8" else d[-10:]
+            cond="(phone LIKE ? OR phone LIKE ?)"; arg=(f"%{v1}%",f"%{v2}%")
+        elif q.startswith("coffee"):
+            cond="card_number LIKE ?"; arg=(f"%{q.upper()}%",)
+        else:
+            cond="name_lc LIKE ?"; arg=(f"%{q}%",)
+        total=c.execute(f"SELECT COUNT(*) FROM users WHERE {cond}",arg).fetchone()[0]
+        rows=[dict(r) for r in c.execute(f"SELECT * FROM users WHERE {cond} ORDER BY created_at DESC LIMIT 10 OFFSET ?",arg+(page*10,))]
+    return rows,total
 def abc_analysis():
     with db() as c: rows=c.execute("SELECT id,full_name,total_spent FROM users WHERE total_spent>0 ORDER BY total_spent DESC").fetchall()
     total=sum(r["total_spent"] for r in rows)
@@ -280,12 +279,15 @@ def send_buttons(uid,text,buttons):
     if r is None or r.status_code!=200:
         log.error("[MAX] send_buttons fail %s",getattr(r,"status_code","-")); return False
     return True
-def upload_image(path):
+def _upload(f):
+    r=http.post(f"{API}/uploads",headers={"Authorization":TOKEN},files={"data":("qr.png",f,"image/png")},params={"type":"image"},timeout=30)
+    if r.status_code!=200: return None
+    return r.json().get("file_id")
+def upload_image(src):
     try:
-        with open(path,"rb") as f:
-            r=http.post(f"{API}/uploads",headers={"Authorization":TOKEN},files={"data":("qr.png",f,"image/png")},params={"type":"image"},timeout=30)
-        if r.status_code!=200: return None
-        return r.json().get("file_id")
+        if isinstance(src,str):
+            with open(src,"rb") as f: return _upload(f)
+        return _upload(src)
     except Exception as e:
         log.error("[upload] %s",e); return None
 def send_image(uid,file_id,text=""):
@@ -296,14 +298,10 @@ def generate_qr(card_number):
     qr.add_data(card_number)
     qr.make(fit=True)
     img=qr.make_image(fill_color="black",back_color="white")
-    with tempfile.NamedTemporaryFile(suffix=".png",delete=False) as f:
-        img.save(f,"PNG"); return f.name
+    buf=io.BytesIO(); img.save(buf,"PNG"); buf.seek(0); return buf
 def show_qr(uid,name):
     u=ensure_user(uid,name)
-    path=generate_qr(u["card_number"])
-    fid=upload_image(path)
-    try: os.unlink(path)
-    except OSError: pass
+    fid=upload_image(generate_qr(u["card_number"]))
     if not fid: return rep(f"{WARN} Не удалось создать QR.",back())
     send_image(uid,fid,f"{CARD} Ваша карта: {u['card_number']}\nПокажите этот QR бариста!")
     return None
@@ -1119,7 +1117,7 @@ async def webhook(request:Request,x_max_bot_api_secret:str|None=Header(default=N
     if WEBHOOK_SEC and x_max_bot_api_secret!=WEBHOOK_SEC: raise HTTPException(401,"Bad signature")
     try: d=await request.json()
     except Exception: raise HTTPException(400,"Bad JSON")
-    log.info("[webhook] in: %s marker=%s",d.get("update_type"),d.get("marker"))
+    log.debug("[webhook] in: %s marker=%s",d.get("update_type"),d.get("marker"))
     await asyncio.to_thread(process_update,d)
     return {"ok":True}
 
