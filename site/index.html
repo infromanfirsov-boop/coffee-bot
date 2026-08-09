@@ -1,1 +1,257 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Кофейня «Утро» — кофе с собой · Воронеж, Ленинский пр-т, 16</title>
+<meta name="description" content="Кофе с собой «Утро» на Ленинском проспекте 16. Рейтинг 4.9. Авторские лимонады, листовой чай, десерты. Ежедневно 7:00–18:00.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/unbounded@latest/cyrillic-500-normal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/unbounded@latest/cyrillic-800-normal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/manrope@latest/cyrillic-400-normal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/manrope@latest/cyrillic-600-normal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/manrope@latest/cyrillic-800-normal.css">
+<style>
+:root{--ink:#0B0B0D;--bg:#F6F8FA;--mut:#6B7280;--blue:#1B87C9;--blue2:#0E6BA8;--sky:#7EC8E3;--card:#fff;--r:22px}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(--ink);overflow-x:hidden}
+h1,h2,.logo{font-family:'Unbounded',sans-serif}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+header{position:sticky;top:0;z-index:50;background:var(--ink);color:#fff}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:12px 0;gap:14px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:.08em;color:#fff;text-decoration:none}
+.logo img{height:40px;width:40px;border-radius:10px;object-fit:cover}
+.menu{display:flex;gap:24px;font-weight:600;font-size:15px}
+.menu a{color:#cfd6dd;text-decoration:none;transition:.2s}
+.menu a:hover{color:#fff}
+.btn{display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;text-decoration:none;font-family:'Manrope';font-weight:800;font-size:15px;padding:13px 22px;border-radius:14px;transition:.2s}
+.btn-blue{background:var(--blue);color:#fff;box-shadow:0 8px 20px rgba(27,135,201,.35)}
+.btn-blue:hover{transform:translateY(-2px);background:var(--blue2)}
+.btn-ghost{background:#fff;color:var(--ink);border:2px solid #e5e9ee}
+.btn-ghost:hover{border-color:var(--blue)}
+.btn-dark{background:var(--ink);color:#fff}
+.btn-dark:hover{transform:translateY(-2px)}
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding:64px 0 44px}
+.badge{display:inline-flex;gap:8px;align-items:center;background:#fff;border:2px solid #dbe7f2;color:var(--blue2);font-weight:800;padding:8px 16px;border-radius:99px;font-size:14px}
+.hero h1{font-size:clamp(30px,5vw,54px);font-weight:800;line-height:1.08;margin:18px 0}
+.hero h1 em{font-style:normal;color:var(--blue)}
+.hero p{font-size:18px;color:var(--mut);max-width:480px;margin-bottom:26px}
+.cta{display:flex;gap:14px;flex-wrap:wrap}
+.hero-img img{width:100%;border-radius:30px;box-shadow:0 30px 60px rgba(11,11,13,.18);animation:float 6s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-12px)}}
+.tick{background:var(--blue);color:#fff;overflow:hidden;padding:12px 0;font-weight:700}
+.tick div{display:flex;gap:48px;white-space:nowrap;animation:mq 22s linear infinite;width:max-content}
+@keyframes mq{to{transform:translateX(-50%)}}
+section{padding:70px 0}
+.h2{font-size:clamp(24px,3.4vw,38px);font-weight:800;margin-bottom:10px}
+.sub{color:var(--mut);font-size:17px;margin-bottom:34px}
+.tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px}
+.tab{padding:12px 22px;border-radius:99px;border:2px solid #e5e9ee;background:#fff;font-weight:800;cursor:pointer;font-size:15px;transition:.2s}
+.tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.item{background:var(--card);border:1px solid #eceff3;border-radius:var(--r);padding:20px;transition:.25s}
+.item:hover{transform:translateY(-4px);box-shadow:0 16px 34px rgba(11,11,13,.1)}
+.item h3{font-size:17px;margin-bottom:6px}
+.item p{color:var(--mut);font-size:14px;line-height:1.5}
+.price{display:inline-block;margin-top:10px;font-weight:800;color:var(--blue2);background:#eaf4fb;padding:6px 12px;border-radius:10px}
+.pane{display:none}.pane.on{display:block;animation:fade .4s}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}}
+.gal{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.gal img{width:100%;height:260px;object-fit:cover;border-radius:var(--r);transition:.3s}
+.gal img:hover{transform:scale(1.03)}
+.feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.feat .ico{font-size:34px;margin-bottom:12px}
+.loyal{background:var(--ink);color:#fff;border-radius:32px;padding:52px;display:grid;grid-template-columns:1.1fr .9fr;gap:36px;align-items:center}
+.loyal h2{font-size:clamp(24px,3vw,34px);margin-bottom:14px}
+.loyal p{color:#c9d4de;margin-bottom:22px;font-size:17px}
+.loyal ul{list-style:none;margin:0 0 26px;display:grid;gap:10px;font-weight:600}
+.loyal li::before{content:"🩵 "}
+.qrbox{background:#fff;border-radius:24px;padding:18px;text-align:center;color:var(--ink)}
+.qrbox img{width:100%;max-width:260px;border-radius:14px}
+.qrbox small{display:block;margin-top:10px;color:var(--mut);font-weight:600}
+.rev{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.rev a.item{display:block;text-decoration:none;color:inherit}
+.stars{color:#F5A623;letter-spacing:2px;margin-bottom:10px}
+.who{font-weight:800;margin-top:14px;font-size:14px;color:var(--mut);display:flex;justify-content:space-between}
+.who span{color:var(--blue)}
+.contact{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+.cinfo{background:#fff;border-radius:var(--r);padding:34px;border:1px solid #eceff3}
+.cinfo .row{display:flex;gap:14px;align-items:flex-start;margin-bottom:20px;font-size:17px}
+.cinfo .row b{font-size:22px}
+.links{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.map{border-radius:var(--r);overflow:hidden;min-height:340px;border:1px solid #eceff3}
+.map iframe{width:100%;height:100%;min-height:340px;border:0;display:block}
+footer{background:var(--ink);color:#9aa4ae;padding:30px 0;font-size:14px}
+.foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center}
+.foot a{color:var(--sky);font-weight:700;text-decoration:none}
+.rv{opacity:0;transform:translateY(24px);transition:.7s}
+.rv.on{opacity:1;transform:none}
+@media(max-width:860px){.hero{grid-template-columns:1fr}.loyal,.contact{grid-template-columns:1fr}.gal{grid-template-columns:1fr}.menu{display:none}}
+</style>
+</head>
+<body>
+<header><div class="wrap nav">
+  <a class="logo" href="#"><img src="/assets/logo.png" alt="" onerror="this.style.display='none'">УТРО</a>
+  <nav class="menu">
+    <a href="#menu">Меню</a><a href="#gallery">Галерея</a><a href="#about">О нас</a><a href="#reviews">Отзывы</a><a href="#contacts">Контакты</a>
+  </nav>
+  <a class="btn btn-blue" href="https://max.ru/id362903188360_bot" target="_blank">MAX-бот</a>
+</div></header>
 
+<div class="wrap hero">
+  <div>
+    <span class="badge">⭐ 4.9 · Яндекс Карты · 5.0 · 2ГИС</span>
+    <h1>Мы открываем <em>солнце</em> по кусочкам</h1>
+    <p>Кофе с собой на Ленинском проспекте, 16. Каждое утро с 7:00 — ароматный кофе, авторские лимонады и десерты, которые делают день.</p>
+    <div class="cta">
+      <a class="btn btn-blue" href="https://max.ru/id362903188360_bot" target="_blank">🩵 Карта гостя в MAX</a>
+      <a class="btn btn-ghost" href="#menu">☕ Меню</a>
+      <a class="btn btn-ghost" href="https://2gis.ru/voronezh/firm/70000001101448488" target="_blank">📍 Маршрут</a>
+    </div>
+  </div>
+  <div class="hero-img"><img src="https://image.qwenlm.ai/public_source/1548520e-dd14-4b32-a2be-b6c4365d1154/10a8f0f1c-4708-40ac-8f2b-6134227ea81d.png" alt="Кофе с собой «Утро»"></div>
+</div>
+
+<div class="tick"><div>
+  <span>☕ кофе с собой</span><span>🩵 4.9 на картах</span><span>📍 Ленинский пр-т, 16</span><span>⏰ ежедневно 7:00–18:00</span><span>🍰 десерты и трайфлы</span><span>🍹 10 авторских лимонадов</span><span>📚 буккроссинг</span>
+  <span>☕ кофе с собой</span><span>🩵 4.9 на картах</span><span>📍 Ленинский пр-т, 16</span><span>⏰ ежедневно 7:00–18:00</span><span>🍰 десерты и трайфлы</span><span>🍹 10 авторских лимонадов</span><span>📚 буккроссинг</span>
+</div></div>
+
+<section id="menu"><div class="wrap">
+  <h2 class="h2">Меню</h2>
+  <p class="sub">Свежее, яркое и очень любимое гостями</p>
+  <div class="tabs">
+    <button class="tab on" data-t="coffee">☕ Кофе</button>
+    <button class="tab" data-t="lemon">🍹 Лимонады</button>
+    <button class="tab" data-t="tea">🍃 Чай</button>
+    <button class="tab" data-t="dessert">🍰 Десерты</button>
+  </div>
+  <div class="pane on" id="coffee"><div class="grid">
+    <div class="item"><h3>Эспрессо</h3><p>Крепкая база любого утра</p></div>
+    <div class="item"><h3>Американо</h3><p>Классика для бодрости</p></div>
+    <div class="item"><h3>Капучино</h3><p>Бархатная молочная пена</p><span class="price">140 ₽</span></div>
+    <div class="item"><h3>Латте</h3><p>Нежный и мягкий</p></div>
+    <div class="item"><h3>Раф</h3><p>Сливочный, согревающий</p></div>
+    <div class="item"><h3>Глинтвейн</h3><p>Согревающий, пряный</p><span class="price">170 ₽</span></div>
+  </div></div>
+  <div class="pane" id="lemon"><div class="grid">
+    <div class="item"><h3>Маракуйя-соло</h3><p>Тропическое путешествие</p></div>
+    <div class="item"><h3>Голубая лагуна</h3><p>Цвет воды на Мальдивах</p></div>
+    <div class="item"><h3>Клубничный сад</h3><p>Нежность с характером</p></div>
+    <div class="item"><h3>Мохито-лимонад</h3><p>Бодрит лучше будильника</p></div>
+    <div class="item"><h3>Тропический рассвет</h3><p>Градиент золота в алый</p></div>
+    <div class="item"><h3>Клубничный мохито</h3><p>Ягода и мята в одном стакане</p></div>
+    <div class="item"><h3>Фиолетовый бриз</h3><p>Сиреневый закат в стакане</p></div>
+    <div class="item"><h3>Клубничный лимон</h3><p>Кисло-сладкая справедливость</p></div>
+    <div class="item"><h3>Маракуйя-мохито</h3><p>Мята в диких джунглях</p></div>
+    <div class="item"><h3>Кюрасао Санрайз</h3><p>Искусство. Не перемешивать!</p></div>
+  </div></div>
+  <div class="pane" id="tea"><div class="grid">
+    <div class="item"><h3>Лимонник с имбирём</h3><p>Бодрит и греет изнутри</p></div>
+    <div class="item"><h3>Нахальный фрукт</h3><p>Тропический микс для настроения</p></div>
+    <div class="item"><h3>Пина Колада</h3><p>Кокос + ананас в горячем чае</p></div>
+    <div class="item"><h3>Зелёный кактус</h3><p>Свежий, сочный, зелёный вкус</p></div>
+    <div class="item"><h3>Сенча</h3><p>Японская бодрость с ноткой бриза</p></div>
+    <div class="item"><h3>Масала</h3><p>Пряный удар в самое сердце</p></div>
+    <div class="item"><h3>Сердце Алтая</h3><p>Травяной сбор с душой горных лугов</p></div>
+    <div class="item"><h3>Южная Индия</h3><p>Крепкий, терпкий, с характером</p></div>
+  </div></div>
+  <div class="pane" id="dessert"><div class="grid">
+    <div class="item"><h3>Капкейк белый</h3><p>Карамель и ванильный бисквит</p><span class="price">250 ₽</span></div>
+    <div class="item"><h3>Капкейк голубой</h3><p>Ежевика и шоколадный бисквит</p><span class="price">250 ₽</span></div>
+    <div class="item"><h3>Трайфл нежно-розовый</h3><p>Малина и шоколадный бисквит</p><span class="price">300 ₽</span></div>
+    <div class="item"><h3>Трайфл розовый</h3><p>Клубника и малина</p><span class="price">300 ₽</span></div>
+    <div class="item"><h3>Трайфл фиолетовый</h3><p>Ежевика и шоколадный бисквит</p><span class="price">300 ₽</span></div>
+    <div class="item"><h3>Трайфл «Карамель-шоколад»</h3><p>Хит! Нежнейшие слои</p><span class="price">300 ₽</span></div>
+    <div class="item"><h3>Печенье с предсказанием</h3><p>Маленькое чудо к кофе</p><span class="price">30 ₽</span></div>
+    <div class="item"><h3>Арахисовая халва</h3><p>Для сладкоежек</p><span class="price">270 ₽</span></div>
+  </div></div>
+</div></section>
+
+<section id="gallery" style="padding-top:0"><div class="wrap">
+  <h2 class="h2">Атмосфера</h2>
+  <p class="sub">Загляните к нам на огонёк</p>
+  <div class="gal">
+    <img src="https://image.qwenlm.ai/public_source/1548520e-dd14-4b32-a2be-b6c4365d1154/123582f97-71df-440c-9b11-14d9873a081f.png" alt="Лимонады">
+    <img src="https://image.qwenlm.ai/public_source/1548520e-dd14-4b32-a2be-b6c4365d1154/131730a7e-4f88-45ab-9350-aeaba8b327cb.png" alt="Десерты">
+    <img src="https://image.qwenlm.ai/public_source/1548520e-dd14-4b32-a2be-b6c4365d1154/1c52fc9cc-e9f5-4677-84e7-99e26111e0a.png" alt="Уютный уголок">
+  </div>
+  <p style="margin-top:16px"><a class="btn btn-ghost" href="https://vk.ru/utronalevom" target="_blank">📷 Больше фото — в нашем VK</a></p>
+</div></section>
+
+<section id="about" style="padding-top:0"><div class="wrap">
+  <h2 class="h2">Почему «Утро»?</h2>
+  <p class="sub">Мы — не просто кофе с собой</p>
+  <div class="feat">
+    <div class="item rv"><div class="ico">🩵</div><h3>Рейтинг 4.9</h3><p>Гости любят нас за вкус и отношение — спасибо за ваши отзывы!</p></div>
+    <div class="item rv"><div class="ico">✍️</div><h3>Стаканчики с пожеланиями</h3><p>На каждом стаканчике — тёплое пожелание, которое поднимает настроение.</p></div>
+    <div class="item rv"><div class="ico">📚</div><h3>Буккроссинг</h3><p>Полка книг под фотостеной: берите почитать бесплатно, оставляйте своё.</p></div>
+    <div class="item rv"><div class="ico">⏰</div><h3>Открыты с 7:00</h3><p>Успеваем согреть всех по дороге на работу и учёбу — до 18:00.</p></div>
+  </div>
+</div></section>
+
+<section id="loyal"><div class="wrap">
+  <div class="loyal">
+    <div>
+      <h2>Карта гостя в MAX — кешбэк до 10%</h2>
+      <p>Отсканируйте QR или откройте бота — и получайте бонусы за каждый кофе.</p>
+      <ul>
+        <li>100 баллов при регистрации</li>
+        <li>Кешбэк 3–10% с каждого чека</li>
+        <li>Подарок в день рождения</li>
+      </ul>
+      <a class="btn btn-blue" href="https://max.ru/id362903188360_bot" target="_blank">Открыть бота в MAX</a>
+    </div>
+    <div class="qrbox">
+      <img src="/assets/qr.png" alt="QR-код бота MAX" onerror="this.style.display='none'">
+      <small>Наведите камеру — карта откроется в MAX</small>
+    </div>
+  </div>
+</div></section>
+
+<section id="reviews" style="padding-top:0"><div class="wrap">
+  <h2 class="h2">Отзывы гостей</h2>
+  <p class="sub">Нажмите на отзыв, чтобы посмотреть профиль</p>
+  <div class="rev">
+    <a class="item rv" href="https://vk.ru/utronalevom" target="_blank"><div class="stars">★★★★★</div><p>«Спасибо за очень вкусный кофе — буду вас ждать!»</p><div class="who">Юлия · ВКонтакте <span>профиль ↗</span></div></a>
+    <a class="item rv" href="https://vk.ru/utronalevom" target="_blank"><div class="stars">★★★★★</div><p>«Спасибо, что сделали наш день! За прекрасное отношение и вкуснейший кофе!»</p><div class="who">Оксана · ВКонтакте <span>профиль ↗</span></div></a>
+    <a class="item rv" href="https://yandex.ru/maps/org/utro/160346229988/" target="_blank"><div class="stars">★★★★★</div><p>4.9 из 5 — средняя оценка кофейни. Читайте все отзывы на Яндекс Картах.</p><div class="who">Яндекс Карты <span>все отзывы ↗</span></div></a>
+  </div>
+</div></section>
+
+<section id="contacts" style="padding-top:0"><div class="wrap">
+  <h2 class="h2">Приходите в гости</h2>
+  <p class="sub">Мы совсем рядом</p>
+  <div class="contact">
+    <div class="cinfo">
+      <div class="row"><b>📍</b><div>г. Воронеж,<br>Ленинский проспект, 16</div></div>
+      <div class="row"><b>⏰</b><div>Ежедневно с 7:00 до 18:00</div></div>
+      <div class="row"><b>📞</b><div><a href="tel:+79525503920" style="color:inherit;text-decoration:none;font-weight:800">+7 (952) 550-39-20</a></div></div>
+      <div class="links">
+        <a class="btn btn-blue" href="tel:+79525503920">Позвонить</a>
+        <a class="btn btn-ghost" href="https://vk.ru/utronalevom" target="_blank">VK</a>
+        <a class="btn btn-ghost" href="https://2gis.ru/voronezh/firm/70000001101448488" target="_blank">2ГИС</a>
+        <a class="btn btn-ghost" href="https://yandex.ru/maps/-/CTSrzT2w" target="_blank">Яндекс</a>
+      </div>
+    </div>
+    <div class="map"><iframe src="https://yandex.ru/map-widget/v1/-/CTSrzT2w" loading="lazy"></iframe></div>
+  </div>
+</div></section>
+
+<footer><div class="wrap foot">
+  <div>© Кофейня «Утро» · Воронеж · Ленинский пр-т, 16</div>
+  <div><a href="https://vk.ru/utronalevom" target="_blank">ВКонтакте</a> · <a href="https://2gis.ru/voronezh/firm/70000001101448488" target="_blank">2ГИС</a> · <a href="https://max.ru/id362903188360_bot" target="_blank">MAX</a></div>
+</div></footer>
+
+<script>
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on'); document.getElementById(t.dataset.t).classList.add('on');
+});
+const io=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.classList.add('on')),{threshold:.15});
+document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
