@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Утро — кабинет владельца</title>
+<link rel="icon" type="image/png" href="/assets/logo.png">
+<style>
+:root{--ink:#2B1A12;--bg:#FFF7EE;--mut:#8a7666;--sun:#FF7A00;--sun2:#FF9E3D;--r:18px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(--ink);padding:20px}
+.wrap{max-width:960px;margin:0 auto}
+h1{font-size:22px}
+.box{max-width:380px;margin:60px auto;background:#fff;border-radius:var(--r);padding:28px;box-shadow:0 10px 30px rgba(43,26,18,.08)}
+.box input{width:100%;padding:14px;border-radius:12px;border:2px solid #f0e2d0;font-size:16px;margin-bottom:12px}
+.btn{width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;font-weight:800;font-size:15px;cursor:pointer}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.kpi{background:#fff;border-radius:var(--r);padding:16px}
+.kpi b{display:block;font-size:20px}
+.kpi span{color:var(--mut);font-size:12px;font-weight:700}
+.card{background:#fff;border-radius:var(--r);padding:20px;margin-bottom:20px}
+.card h2{font-size:16px;margin-bottom:14px}
+.chart{display:flex;align-items:flex-end;gap:6px;height:160px}
+.bar{flex:1;background:linear-gradient(180deg,var(--sun2),var(--sun));border-radius:8px 8px 0 0;min-height:4px}
+.labels{display:flex;gap:6px;margin-top:6px}
+.labels span{flex:1;text-align:center;font-size:9px;color:var(--mut)}
+.top{list-style:none}
+.top li{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0e2d0;font-weight:600}
+.top li:last-child{border:none}
+.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.logout{background:none;border:2px solid #f0e2d0;border-radius:10px;padding:8px 14px;font-weight:700;cursor:pointer;color:var(--mut)}
+.err{color:#B3372F;font-weight:700;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div id="login" class="box" style="display:none">
+  <h1>🔐 Кабинет владельца</h1>
+  <input id="pass" type="password" placeholder="Пароль" onkeydown="if(event.key==='Enter')login()">
+  <button class="btn" onclick="login()">Войти</button>
+  <div id="lerr" class="err"></div>
+</div>
+<div id="dash" style="display:none">
+  <div class="head"><h1>☕ Утро · панель владельца</h1><button class="logout" onclick="logout()">Выйти</button></div>
+  <div class="kpis" id="kpis"></div>
+  <div class="card"><h2>💰 Выручка за 14 дней</h2><div class="chart" id="chart"></div><div class="labels" id="labels"></div></div>
+  <div class="card"><h2>🔥 Топ товаров</h2><ul class="top" id="top"></ul></div>
+</div>
+</div>
+<script>
+function show(id){document.getElementById('login').style.display=id==='login'?'block':'none';document.getElementById('dash').style.display=id==='dash'?'block':'none';}
+function kpi(v,l){return '<div class="kpi"><b>'+v+'</b><span>'+l+'</span></div>';}
+async function login(){
+  const p=document.getElementById('pass').value;
+  const r=await fetch('/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:p})});
+  if(r.ok){load();}else{document.getElementById('lerr').textContent='Неверный пароль';}
+}
+async function logout(){await fetch('/admin/logout',{method:'POST'});show('login');}
+async function load(){
+  const r=await fetch('/admin/api/stats');
+  if(r.status===401){show('login');return;}
+  const d=await r.json();
+  show('dash');
+  document.getElementById('kpis').innerHTML=
+    kpi(d.today_sum+' ₽','сегодня')+
+    kpi(d.today_cnt,'чеков сегодня')+
+    kpi(d.avg+' ₽','средний чек')+
+    kpi(d.total,'всего гостей')+
+    kpi(d.active,'активны за 30 дн')+
+    kpi(d.sleeping,'уснувшие')+
+    kpi(d.liability+' ⭐','долг по баллам');
+  const max=Math.max.apply(null,d.days.map(function(x){return x.s;}))||1;
+  document.getElementById('chart').innerHTML=d.days.map(function(x){return '<div class="bar" style="height:'+Math.max(4,Math.round(x.s/max*100))+'%" title="'+x.d+': '+x.s+' ₽"></div>';}).join('');
+  document.getElementById('labels').innerHTML=d.days.map(function(x){return '<span>'+x.d.slice(3)+'</span>';}).join('');
+  document.getElementById('top').innerHTML=d.top.length?d.top.map(function(t){return '<li><span>'+t.item+'</span><b>'+t.cnt+'×</b></li>';}).join(''):'<li>Пока пусто — добавляй товары при чеке</li>';
+}
+load();
+</script>
+</body>
+</html>
