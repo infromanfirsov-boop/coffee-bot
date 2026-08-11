@@ -260,9 +260,9 @@ footer{background:var(--ink);color:#c9b39e;padding:28px 0;font-size:14px}
       <a class="btn btn-sun" href="https://max.ru/id362903188360_bot" target="_blank" rel="noopener noreferrer">Открыть бота в MAX</a>
       <div style="margin-top:32px; padding-top:24px; border-top:1px solid rgba(255,255,255,0.15);">
         <h3 style="color:#fff;margin-bottom:12px;font-size:18px;">🔍 Проверить мою карту</h3>
-        <p style="color:#e8d9c8;margin-bottom:16px;font-size:15px;">Введите последние 4 цифры номера телефона</p>
+        <p style="color:#e8d9c8;margin-bottom:16px;font-size:15px;">4 цифры — баланс · полный номер — ваша карта с QR</p>
         <form id="phone-form" style="display:flex;gap:10px;flex-wrap:wrap;">
-          <input id="phone-input" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="4 цифры"
+          <input id="phone-input" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="11" placeholder="4 цифры"
                  style="flex:1;min-width:150px;padding:14px 18px;border-radius:14px;border:2px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.08);color:#fff;font-size:16px;font-weight:600;">
           <button type="submit" style="padding:14px 28px;border-radius:14px;background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;border:none;font-weight:800;cursor:pointer;font-size:15px;box-shadow:0 8px 20px rgba(255,122,0,.35);">
             Узнать баланс
@@ -406,32 +406,39 @@ const io=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.c
 document.querySelectorAll('.rv').forEach(el=>io.observe(el));
 
 // Форма проверки карты
-document.getElementById('phone-input').addEventListener('input',function(){this.value=this.value.replace(/\D/g,'').slice(0,4);});
+document.getElementById('phone-input').addEventListener('input',function(){this.value=this.value.replace(/\D/g,'').slice(0,11);});
 document.getElementById('phone-form').addEventListener('submit',function(e){e.preventDefault();checkCard();});
 
 async function checkCard(){
   const input=document.getElementById('phone-input');
   const resultBox=document.getElementById('card-result');
   const phone=input.value.trim();
-  if(phone.length<4){resultBox.innerHTML='<div style="color:#FFB4A8;font-weight:600;">Введите 4 цифры</div>';return;}
+  if(phone.length<4){resultBox.innerHTML='<div style="color:#FFB4A8;font-weight:600;">Введите 4 или больше цифр</div>';return;}
   resultBox.innerHTML='<div style="color:#fff;">⏳ Ищем…</div>';
   try{
-    const res=await fetch('/api/card?phone='+phone,{headers:{'X-Api-Key':'utro_coffee_2024_secret_key_7a9b3c'}});
+    const full=phone.length>=10;
+    const res=await fetch((full?'/api/webcard?phone=':'/api/card?phone=')+phone,{headers:{'X-Api-Key':'utro_coffee_2024_secret_key_7a9b3c'}});
     if(res.status===403){resultBox.innerHTML='<div style="color:#FFB4A8;">Ошибка доступа</div>';return;}
+    if(res.status===429){resultBox.innerHTML='<div style="color:#FFB4A8;">Слишком часто, подождите минуту</div>';return;}
     const data=await res.json();
     if(data.ok){
+      let qrHtml='';
+      if(full&&data.card){
+        try{var q2=qrcode(0,'M');q2.addData(data.card);q2.make();qrHtml='<div style="margin-top:12px;background:#fff;border-radius:12px;padding:10px;display:inline-block;">'+q2.createImgTag(4,8)+'</div><div style="color:#c9b39e;font-size:12px;margin-top:6px;">Покажите QR или назовите номер на кассе</div>';}catch(e){}
+      }
       resultBox.innerHTML='<div style="background:rgba(255,255,255,0.12);border-radius:16px;padding:20px;border:1px solid rgba(255,255,255,0.15);">'
-        +'<div style="font-weight:800;font-size:17px;margin-bottom:12px;color:#fff;">💳 Ваша карта найдена!</div>'
+        +'<div style="font-weight:800;font-size:17px;margin-bottom:12px;color:#fff;">💳 Карта найдена!</div>'
+        +(full?'<div style="margin-bottom:10px;color:#FFB25E;font-weight:800;">'+data.card+'</div>':'')
         +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'
         +'<div><div style="color:#c9b39e;font-size:13px;">Баллы</div><div style="color:#fff;font-weight:800;font-size:22px;">'+data.points+' ⭐</div></div>'
         +'<div><div style="color:#c9b39e;font-size:13px;">Уровень</div><div style="color:#fff;font-weight:800;font-size:16px;">'+data.level+'</div></div>'
         +'<div><div style="color:#c9b39e;font-size:13px;">Кешбэк</div><div style="color:#FFB25E;font-weight:800;font-size:18px;">'+data.pct+'%</div></div>'
         +'<div><div style="color:#c9b39e;font-size:13px;">Визитов</div><div style="color:#fff;font-weight:800;font-size:18px;">'+data.visits+' ☕</div></div>'
-        +'</div></div>';
+        +'</div>'+qrHtml+'</div>';
     }else{
       resultBox.innerHTML='<div style="background:rgba(255,107,107,0.12);border:1px solid rgba(255,107,107,0.35);border-radius:16px;padding:20px;color:#fff;">'
         +'<div style="font-weight:800;margin-bottom:8px;">😕 Карта не найдена</div>'
-        +'<div style="color:#e8d9c8;font-size:14px;">Возможно, вы регистрировались на другой номер. <a href="https://max.ru/id362903188360_bot" target="_blank" rel="noopener noreferrer" style="color:#FFB25E;">Откройте бота</a>, чтобы получить карту!</div></div>';
+        +'<div style="color:#e8d9c8;font-size:14px;">Проверьте номер или <a href="https://max.ru/id362903188360_bot" target="_blank" rel="noopener noreferrer" style="color:#FFB25E;">откройте бота</a> — попросите бариста создать карту.</div></div>';
     }
   }catch(e){resultBox.innerHTML='<div style="color:#FFB4A8;">Ошибка соединения с сервером</div>';}
 }
