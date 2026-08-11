@@ -1835,6 +1835,23 @@ def admin_export(request: Request):
     if not admin_ok(request): raise HTTPException(401, "Нужен вход")
     return Response(content=export_csv(), media_type="text/csv",
                     headers={"Content-Disposition": "attachment; filename=clients.csv"})
+@app.get("/admin/api/extra")
+def admin_extra(request: Request):
+    if not admin_ok(request): raise HTTPException(401, "Нужен вход")
+    now = datetime.now()
+    cut = (now - timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
+    with db_ro() as c:
+        hours = []
+        for h in range(7, 19):
+            s = 0
+            for tbl in ("purchases", "walkins"):
+                r = c.execute(f"SELECT COALESCE(SUM(v),0) s FROM (SELECT MAX(amount) v FROM {tbl} WHERE created_at>=? AND CAST(strftime('%H',created_at) AS INT)=? GROUP BY COALESCE(NULLIF(receipt_id,''),created_at))", (cut, h)).fetchone()
+                s += r["v"]
+            hours.append({"h": h, "s": round(s)})
+        first = c.execute("SELECT COUNT(*) n FROM users WHERE visits_count=1").fetchone()["n"]
+        loyal = c.execute("SELECT COUNT(*) n FROM users WHERE visits_count>=2").fetchone()["n"]
+    pct = round(loyal * 100 / (first + loyal)) if (first + loyal) else 0
+    return {"ok": True, "hours": hours, "first": first, "loyal": loyal, "pct": pct}
 def make_table_qr():
     try:
         me = http.get(f"{API}/me", headers=H, timeout=10).json()
