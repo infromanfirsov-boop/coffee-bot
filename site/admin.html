@@ -137,7 +137,7 @@ async function extra(){
   document.getElementById('hlabels').innerHTML=d.hours.map(function(x){return '<span>'+x.h+'</span>';}).join('');
   document.getElementById('ret').innerHTML=kpi(d.first,'первый визит')+kpi(d.loyal,'постоянные (2+ визитов)')+kpi(d.pct+'%','возвращаются');
 }
-load(); extra();
+load(); extra(); clients();
 </script>
 </body>
 </html>
