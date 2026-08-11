@@ -31,15 +31,19 @@ ym(100518598, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true,
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/manrope@latest/cyrillic-600-normal.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/manrope@latest/cyrillic-800-normal.css">
 <style>
-:root{--ink:#2B1A12;--choc:#4A2E1D;--bg:#FFF7EE;--mut:#8a7666;--sun:#FF7A00;--sun2:#FF9E3D;--gold:#F5A623;--card:#fff;--r:22px}
+:root{--ink:#2B1A12;--choc:#4A2E1D;--mut:#8a7666;--sun:#FF7A00;--sun2:#FF9E3D;--gold:#F5A623;--card:#fff;--r:22px}
 *{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}
-body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(--ink);overflow-x:hidden}
+body{font-family:'Manrope',system-ui,sans-serif;color:var(--ink);overflow-x:hidden;background:linear-gradient(180deg,#FFF9F2,#FFEFD9)}
+body::before{content:"";position:fixed;inset:0;z-index:-1;background:
+ radial-gradient(1100px 560px at 88% -8%, rgba(255,158,61,.20), transparent 60%),
+ radial-gradient(800px 480px at -12% 34%, rgba(255,122,0,.10), transparent 60%),
+ repeating-linear-gradient(45deg, rgba(43,26,18,.02) 0 2px, transparent 2px 16px)}
 h1,h2,.logo{font-family:'Unbounded',sans-serif}
 .wrap{max-width:1120px;margin:0 auto;padding:0 20px}
-header{position:sticky;top:0;z-index:50;background:var(--ink)}
+header{position:sticky;top:0;z-index:50;background:var(--ink);box-shadow:0 6px 24px rgba(43,26,18,.25)}
 .nav{display:flex;align-items:center;justify-content:space-between;padding:12px 0;gap:14px}
 .logo{display:flex;align-items:center;gap:12px;color:#fff;text-decoration:none}
-.logo img{height:46px;width:46px;border-radius:50%;object-fit:cover;background:transparent;padding:0;box-shadow:0 0 0 2px rgba(255,178,94,.45),0 6px 16px rgba(0,0,0,.35)}
+.logo img{height:46px;width:46px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px rgba(255,178,94,.45),0 6px 16px rgba(0,0,0,.35)}
 .logo b{font-size:17px;letter-spacing:.22em;text-transform:lowercase;font-weight:500;color:#FFF7EE}
 .logo small{display:block;color:#c9b39e;font-size:11px;letter-spacing:.2em}
 .menu{display:flex;gap:24px;font-weight:600;font-size:15px}
@@ -68,16 +72,21 @@ section{padding:64px 0}
 .h2{font-size:clamp(24px,3.4vw,36px);font-weight:800;margin-bottom:8px}
 .sub{color:var(--mut);font-size:17px;margin-bottom:30px}
 .tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:26px}
-.tab{padding:12px 20px;border-radius:99px;border:2px solid #f0e2d0;background:#fff;font-weight:800;cursor:pointer;font-size:15px}
-.tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tab{padding:12px 20px;border-radius:99px;border:2px solid #f0e2d0;background:#fff;font-weight:800;cursor:pointer;font-size:15px;transition:.2s}
+.tab.on{background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;border-color:transparent;box-shadow:0 8px 20px rgba(255,122,0,.3)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
-.item{background:var(--card);border:1px solid #f0e2d0;border-radius:var(--r);padding:18px;transition:.25s}
-.item:hover{transform:translateY(-4px);box-shadow:0 16px 34px rgba(43,26,18,.1)}
-.item h3{font-size:16px;margin-bottom:6px}
-.item p{color:var(--mut);font-size:14px;line-height:1.5}
-.price{display:inline-block;margin-top:8px;font-weight:800;color:#C2540A;background:#FFE8D2;padding:6px 12px;border-radius:10px}
+.mi{background:var(--card);border:1px solid #f0e2d0;border-radius:20px;padding:16px;transition:.25s;display:flex;flex-direction:column;gap:8px;box-shadow:0 4px 14px rgba(43,26,18,.05)}
+.mi:hover{transform:translateY(-4px);box-shadow:0 16px 34px rgba(43,26,18,.12)}
+.mi h3{font-size:16px}
+.mi p{color:var(--mut);font-size:13px;line-height:1.5}
+.mi .ph{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:14px}
+.vols{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto}
+.vol{background:#FFF3E4;color:#C2540A;font-weight:800;font-size:12px;padding:5px 10px;border-radius:99px;white-space:nowrap}
 .hit{display:inline-block;margin-left:8px;background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;font-size:12px;font-weight:800;padding:3px 10px;border-radius:99px;vertical-align:middle}
 .soon{border:2px dashed #FFD9AE;background:#FFF9F2;color:#B36B2E}
+.priceband{background:linear-gradient(135deg,var(--ink),var(--choc));color:#fff;border-radius:18px;padding:16px 20px;margin-bottom:18px;font-weight:700;display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+.priceband b{color:var(--sun2)}
+.grp{margin:20px 0 10px;font-weight:800;font-size:15px;color:var(--choc)}
 .pane{display:none}.pane.on{display:block;animation:fade .4s}
 @keyframes fade{from{opacity:0;transform:translateY(8px)}}
 .ph-card{position:relative;border-radius:var(--r);overflow:hidden;aspect-ratio:4/3;background:linear-gradient(135deg,#FFD9AE,#FFF1DE)}
@@ -87,7 +96,7 @@ section{padding:64px 0}
 .ph-card.hasimg .ph-fallback{display:none}
 .carwrap{position:relative}
 .car{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:10px}
-.car .item{min-width:290px;scroll-snap-align:start;text-decoration:none;color:inherit;display:block}
+.car .item{min-width:290px;scroll-snap-align:start;text-decoration:none;color:inherit;display:block;background:#fff;border:1px solid #f0e2d0;border-radius:var(--r);padding:18px}
 .car-btn{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;border:none;background:#fff;box-shadow:0 6px 18px rgba(43,26,18,.18);font-size:20px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:5}
 .car-btn.l{left:-12px}.car-btn.r{right:-12px}
 @media(min-width:861px){.car-btn{display:flex}}
@@ -98,7 +107,7 @@ section{padding:64px 0}
 .who span{color:var(--sun)}
 .rphoto{width:100%;height:120px;object-fit:cover;border-radius:14px;margin-top:10px;aspect-ratio:29/12}
 .faq-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.faq{background:#fff;border:1px solid #f0e2d0;border-radius:16px;padding:16px 18px;transition:.2s}
+.faq{background:#fff;border:1px solid #f0e2d0;border-radius:16px;padding:16px 18px}
 .faq summary{cursor:pointer;font-weight:800;font-size:15px;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .faq summary::-webkit-details-marker{display:none}
 .faq summary::after{content:'+';font-size:20px;color:var(--sun);font-weight:800;transition:.2s}
@@ -110,11 +119,11 @@ section{padding:64px 0}
 .share-card h3{font-size:20px;margin-bottom:8px}
 .share-card p{color:var(--mut);margin-bottom:16px;line-height:1.5}
 @media(max-width:860px){.share-grid{grid-template-columns:1fr}}
-.loyal{background:linear-gradient(135deg,var(--ink),var(--choc));color:#fff;border-radius:32px;padding:48px;display:grid;grid-template-columns:1.1fr .9fr;gap:36px;align-items:center}
+.loyal{background:linear-gradient(135deg,var(--ink),var(--choc));color:#fff;border-radius:32px;padding:48px;display:grid;grid-template-columns:1.1fr .9fr;gap:36px;align-items:center;box-shadow:0 30px 60px rgba(43,26,18,.25)}
 .loyal h2{font-size:clamp(22px,3vw,32px);margin-bottom:12px}
 .loyal p{color:#e8d9c8;margin-bottom:20px}
 .loyal ul{list-style:none;margin:0 0 24px;display:grid;gap:10px;font-weight:600}
-.loyal li::before{content:" "}
+.loyal li::before{content:"🧡 "}
 .qrbox{background:#fff;border-radius:24px;padding:20px;text-align:center;color:var(--ink)}
 .qrbox img{width:220px;height:220px;border-radius:12px}
 .qrbox small{display:block;margin-top:10px;color:var(--mut);font-weight:600}
@@ -132,19 +141,19 @@ footer{background:var(--ink);color:#c9b39e;padding:28px 0;font-size:14px}
 .fab{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:60;display:none;align-items:center;gap:8px;padding:14px 24px;border-radius:99px;background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;font-weight:800;box-shadow:0 10px 30px rgba(255,122,0,.45);text-decoration:none;font-size:15px}
 @media(max-width:860px){
   .hero,.loyal,.contact{grid-template-columns:1fr}
-  .menu{display:flex; gap:16px; font-size:14px; font-weight:600; overflow-x:auto; white-space:nowrap; padding-bottom:4px;}
-  .menu a{white-space: nowrap;}
+  .menu{display:flex;gap:16px;font-size:14px;font-weight:600;overflow-x:auto;white-space:nowrap;padding-bottom:4px}
+  .menu a{white-space:nowrap}
   .logo small{display:none}
   .logo b{font-size:16px}
   .logo img{height:38px;width:38px}
-  .loyal{padding:32px 24px;}
+  .loyal{padding:32px 24px}
   .fab{display:inline-flex}
 }
 </style>
 </head>
 <body>
 <header><div class="wrap nav">
-  <a class="logo" href="#"><img src="/assets/logo.png" alt="Логотип кофейни Утро" onerror="this.style.display='none'"><span><b>УТРО</b><small>кофе с собой</small></span></a>
+  <a class="logo" href="#"><img src="/assets/logo.png" alt="Логотип кофейни Утро" onerror="this.style.display='none'"><span><b>утро</b><small>кофе с собой</small></span></a>
   <nav class="menu"><a href="#menu">Меню</a><a href="#atmo">Атмосфера</a><a href="#reviews">Отзывы</a><a href="#loyal">Карта гостя</a><a href="#contacts">Контакты</a></nav>
   <a class="btn btn-sun" href="https://max.ru/id362903188360_bot" target="_blank" rel="noopener noreferrer">MAX-бот</a>
 </div></header>
@@ -167,8 +176,8 @@ footer{background:var(--ink);color:#c9b39e;padding:28px 0;font-size:14px}
 </div>
 
 <div class="tick"><div>
-  <span>☕ авторский кофе</span><span>🍹 лимонады 190 ₽</span><span>📍 Ленинский пр-т, 16</span><span>⏰ 7:00–18:00</span><span>🍰 десерты</span><span>🧡 кешбэк до 10%</span><span>📚 буккроссинг</span><span>✍️ пожелания на стаканчиках</span>
-  <span>☕ авторский кофе</span><span>🍹 лимонады 190 ₽</span><span>📍 Ленинский пр-т, 16</span><span>⏰ 7:00–18:00</span><span>🍰 десерты</span><span>🧡 кешбэк до 10%</span><span>📚 буккроссинг</span><span>✍️ пожелания на стаканчиках</span>
+  <span>☕ авторский кофе</span><span>🍹 лимонады 190 ₽</span><span>📍 Ленинский пр-т, 16</span><span>⏰ 7:00–18:00</span><span>🧡 кешбэк до 10%</span><span>📚 буккроссинг</span><span>✍️ пожелания на стаканчиках</span>
+  <span>☕ авторский кофе</span><span>🍹 лимонады 190 ₽</span><span>📍 Ленинский пр-т, 16</span><span>⏰ 7:00–18:00</span><span>🧡 кешбэк до 10%</span><span>📚 буккроссинг</span><span>✍️ пожелания на стаканчиках</span>
 </div></div>
 
 <section id="menu" class="rv"><div class="wrap">
@@ -180,64 +189,85 @@ footer{background:var(--ink);color:#c9b39e;padding:28px 0;font-size:14px}
     <button class="tab" data-t="tea">🍃 Чай</button>
     <button class="tab" data-t="dessert">🍰 Десерты</button>
   </div>
+
   <div class="pane on" id="hot"><div class="grid">
-    <div class="item"><h3>Эспрессо</h3><p>350 мл — 270 ₽</p></div>
-    <div class="item"><h3>Эспрессо-тоник</h3><p>250 — 120 ₽ · 350 — 200 ₽</p></div>
-    <div class="item"><h3>Американо</h3><p>250 — 160 ₽ · 350 — 260 ₽</p></div>
-    <div class="item"><h3>Флэт-уайт</h3><p>250 — 140 ₽ · 350 — 220 ₽ · 450 — 260 ₽</p></div>
-    <div class="item"><h3>Капучино<span class="hit">🔥 Хит</span></h3><p>350 — 220 ₽ · 450 — 260 ₽</p></div>
-    <div class="item"><h3>Латте<span class="hit">🔥 Хит</span></h3><p>350 — 250 ₽ · 450 — 300 ₽</p></div>
-    <div class="item"><h3>Бамбл</h3><p>250 — 140 ₽ · 350 — 220 ₽ · 450 — 260 ₽</p></div>
-    <div class="item"><h3>Матча-латте</h3><p>350 — 260 ₽ · 450 — 320 ₽</p></div>
-    <div class="item"><h3>Раф ванильный<span class="hit">🔥 Хит</span></h3><p>350 — 260 ₽ · 450 — 320 ₽</p></div>
-    <div class="item"><h3>Раф с сиропом</h3><p>350 — 260 ₽ · 450 — 320 ₽</p></div>
-    <div class="item"><h3>Какао</h3><p>250 — 140 ₽ · 350 — 230 ₽ · 450 — 300 ₽</p></div>
-    <div class="item"><h3>Шоколад</h3><p>250 — 180 ₽ · 350 — 250 ₽ · 450 — 300 ₽</p></div>
-    <div class="item"><h3>Мокачино</h3><p>250 — 160 ₽ · 350 — 250 ₽ · 450 — 320 ₽</p></div>
+    <div class="mi"><h3>Эспрессо</h3><p>Классика утра: плотный и бодрый</p><div class="vols"><span class="vol">30 мл — 60 ₽</span><span class="vol">60 мл — 80 ₽</span></div></div>
+    <div class="mi"><h3>Эспрессо-тоник</h3><p>Искрящийся тоник + двойной эспрессо</p><div class="vols"><span class="vol">350 мл — 270 ₽</span></div></div>
+    <div class="mi"><h3>Американо</h3><p>Чистый вкус кофе, ничего лишнего</p><div class="vols"><span class="vol">250 — 120 ₽</span><span class="vol">350 — 200 ₽</span></div></div>
+    <div class="mi"><h3>Флэт уайт</h3><p>Двойной эспрессо + шелковая пена</p><div class="vols"><span class="vol">250 — 160 ₽</span><span class="vol">350 — 260 ₽</span></div></div>
+    <div class="mi"><img class="ph" src="/assets/menu-cappuccino.png" alt="Капучино" onerror="this.style.display='none'"><h3>Капучино<span class="hit">🔥 Хит</span></h3><p>Баланс кофе и молочной пены</p><div class="vols"><span class="vol">250 — 140 ₽</span><span class="vol">350 — 220 ₽</span><span class="vol">450 — 260 ₽</span></div></div>
+    <div class="mi"><img class="ph" src="/assets/menu-latte.png" alt="Латте" onerror="this.style.display='none'"><h3>Латте<span class="hit">🔥 Хит</span></h3><p>Нежный, молочный, любимый</p><div class="vols"><span class="vol">350 — 220 ₽</span><span class="vol">450 — 260 ₽</span></div></div>
+    <div class="mi"><img class="ph" src="/assets/menu-bumble.png" alt="Бамбл" onerror="this.style.display='none'"><h3>Бамбл</h3><p>Апельсин, карамель и эспрессо слоями</p><div class="vols"><span class="vol">350 — 250 ₽</span><span class="vol">450 — 300 ₽</span></div></div>
+    <div class="mi"><img class="ph" src="/assets/menu-matcha.png" alt="Матча-латте" onerror="this.style.display='none'"><h3>Матча-латте</h3><p>Японская бодрость на молоке</p><div class="vols"><span class="vol">250 — 140 ₽</span><span class="vol">350 — 220 ₽</span><span class="vol">450 — 260 ₽</span></div></div>
+    <div class="mi"><img class="ph" src="/assets/menu-raf.png" alt="Раф ванильный" onerror="this.style.display='none'"><h3>Раф ванильный<span class="hit">🔥 Хит</span></h3><p>Сливочный, как облако</p><div class="vols"><span class="vol">350 — 260 ₽</span><span class="vol">450 — 300 ₽</span></div></div>
+    <div class="mi"><h3>Раф с сиропом</h3><p>Выбери свой вкус: от ванили до халвы</p><div class="vols"><span class="vol">350 — 260 ₽</span><span class="vol">450 — 300 ₽</span></div></div>
+    <div class="mi"><h3>Какао</h3><p>Тёплое и уютное, как в детстве</p><div class="vols"><span class="vol">250 — 140 ₽</span><span class="vol">350 — 230 ₽</span><span class="vol">450 — 300 ₽</span></div></div>
+    <div class="mi"><h3>Шоколад</h3><p>Горячий шоколад, густой и насыщенный</p><div class="vols"><span class="vol">250 — 180 ₽</span><span class="vol">350 — 250 ₽</span><span class="vol">450 — 300 ₽</span></div></div>
+    <div class="mi"><h3>Мокачино</h3><p>Кофе + шоколад = идеальная пара</p><div class="vols"><span class="vol">250 — 160 ₽</span><span class="vol">350 — 250 ₽</span><span class="vol">450 — 320 ₽</span></div></div>
   </div></div>
-  <div class="pane" id="author"><div class="grid">
-    <div class="item"><h3>Авторский кофе · 280 ₽</h3><p>Банан · Крем-брюле · Клюква-апельсин · Французская ваниль · Мёд-корица · Грушевый вупи-пай</p></div>
-    <div class="item"><h3>Авторский кофе · 320 ₽</h3><p>Сырный панч · Арахисовая халва · Миндальный круассан · Тарт с лимонной меренгой · Вяленые томаты с айвой</p></div>
-    <div class="item"><h3>Ещё вкусы</h3><p>Крекер с солью · Вишнёвая кола · Кокос-малина · Банановое мороженое</p></div>
-    <div class="item"><h3>Бабл-ти</h3><p>Черника с шоколадом · Пина колада с вишней · Банановое мороженое · Тарт с лимоном и меренгой</p></div>
-    <div class="item"><h3>Матча</h3><p>Жёлтая груша · Сакура и миндаль</p></div>
-  </div></div>
-  <div class="pane" id="lemon"><div class="grid">
-    <div class="item"><h3>Холодные лимонады</h3><p>Все — 190 ₽</p><span class="price">190 ₽</span></div>
-    <div class="item"><h3>Маракуйя-соло</h3><p>Тропическое путешествие</p></div>
-    <div class="item"><h3>Маракуйя-мохито</h3><p>Мята в диких джунглях</p></div>
-    <div class="item"><h3>Мохито-лимонад</h3><p>Бодрит лучше будильника</p></div>
-    <div class="item"><h3>Тропический рассвет</h3><p>Градиент золота в алый</p></div>
-    <div class="item"><h3>Клубничный сад</h3><p>Нежность с характером</p></div>
-    <div class="item"><h3>Клубничный мохито</h3><p>Ягода и мята</p></div>
-    <div class="item"><h3>Клубничный лимон</h3><p>Кисло-сладкая справедливость</p></div>
-    <div class="item"><h3>Голубая лагуна<span class="hit">🔥 Хит</span></h3><p>Цвет воды на Мальдивах</p></div>
-    <div class="item"><h3>Фиолетовый бриз</h3><p>Сиреневый закат</p></div>
-    <div class="item"><h3>Кюрасао санрайз</h3><p>Искусство. Не перемешивать!</p></div>
-  </div></div>
+
+  <div class="pane" id="author">
+    <div class="priceband">✨ Авторский кофе · <b>350 мл — 280 ₽</b> · <b>450 мл — 320 ₽</b> · горячий или холодный — любой вкус в любом объёме</div>
+    <img class="ph" style="width:100%;aspect-ratio:21/9;object-fit:cover;border-radius:18px;margin-bottom:8px" src="/assets/menu-author.png" alt="Авторский кофе" onerror="this.style.display='none'">
+    <div class="grp">🍰 Десертные истории</div>
+    <div class="grid">
+      <div class="mi"><h3>Банан</h3><p>Сливочный, с карамельным бананом</p></div>
+      <div class="mi"><h3>Крем-брюле</h3><p>Та самая корочка жжёной карамели — в чашке</p></div>
+      <div class="mi"><h3>Французская ваниль</h3><p>Нежная ваниль, как в парижской кондитерской</p></div>
+      <div class="mi"><h3>Мёд-корица</h3><p>Тёплый мёд и щепотка корицы</p></div>
+      <div class="mi"><h3>Арахисовая халва</h3><p>Ореховая сладость, как халва с рынка</p></div>
+      <div class="mi"><h3>Миндальный круассан</h3><p>Сливочный миндаль — утро в Париже</p></div>
+      <div class="mi"><h3>Грушевый вупи-пай</h3><p>Груша и крем: десерт, ставший кофе</p></div>
+      <div class="mi"><h3>Банановое мороженое</h3><p>Как пломбир из детства, только с кофе</p></div>
+    </div>
+    <div class="grp">🍓 Фрукты и ягоды</div>
+    <div class="grid">
+      <div class="mi"><h3>Клюква-апельсин</h3><p>Яркая ягода и солнечный цитрус</p></div>
+      <div class="mi"><h3>Кокос-малина</h3><p>Тропика встречается с кислой малиной</p></div>
+      <div class="mi"><h3>Вишнёвая кола</h3><p>Игристая вишня с ноткой колы</p></div>
+    </div>
+    <div class="grp">🎩 Гастрономия (для смелых)</div>
+    <div class="grid">
+      <div class="mi"><h3>Сырный панч</h3><p>Сливочный сыр и специи — звучит дерзко, вкус нежно</p></div>
+      <div class="mi"><h3>Вяленые томаты с айвой</h3><p>Самое неожиданное сочетание доски</p></div>
+      <div class="mi"><h3>Крекер с солью</h3><p>Солёная карамель в новом прочтении</p></div>
+      <div class="mi"><h3>Тарт с лимонной меренгой</h3><p>Кислый лимон и воздушная меренга</p></div>
+    </div>
+  </div>
+
+  <div class="pane" id="lemon">
+    <div class="priceband">🍹 Холодные лимонады · <b>все — 190 ₽</b> · 500 мл</div>
+    <img class="ph" style="width:100%;aspect-ratio:21/9;object-fit:cover;border-radius:18px;margin-bottom:8px" src="/assets/menu-lemonade.png" alt="Лимонады" onerror="this.style.display='none'">
+    <div class="grid">
+      <div class="mi"><h3>Маракуйя-соло</h3><p>сироп маракуйя</p></div>
+      <div class="mi"><h3>Голубая лагуна</h3><p>блю кюрасао + лимонный сок</p></div>
+      <div class="mi"><h3>Клубничный сад</h3><p>клубника + гренадин</p></div>
+      <div class="mi"><h3>Мохито-лимонад</h3><p>мохито + лимонный сок</p></div>
+      <div class="mi"><h3>Тропический рассвет</h3><p>маракуйя + гренадин</p></div>
+      <div class="mi"><h3>Клубничный мохито</h3><p>клубника + мохито</p></div>
+      <div class="mi"><h3>Фиолетовый бриз</h3><p>блю кюрасао + гренадин + лимонный сок</p></div>
+      <div class="mi"><h3>Клубничный лимон</h3><p>клубника + лимонный сок</p></div>
+      <div class="mi"><h3>Маракуйя-мохито</h3><p>маракуйя + мохито</p></div>
+      <div class="mi"><h3>Кюрасао санрайз</h3><p>блю кюрасао + маракуйя + гренадин</p></div>
+    </div>
+  </div>
+
   <div class="pane" id="tea"><div class="grid">
-    <div class="item"><h3>Чай классический</h3><p>250 — 120 ₽ · 350 — 150 ₽ · 450 — 170 ₽</p></div>
-    <div class="item"><h3>Чай лимон / смородина / каркаде</h3><p>100 ₽</p><span class="price">100 ₽</span></div>
-    <div class="item"><h3>Латте масала</h3><p>100 ₽</p><span class="price">100 ₽</span></div>
-    <div class="item"><h3>Лимонник с имбирём</h3><p>Бодрит и греет</p></div>
-    <div class="item"><h3>Нахальный фрукт</h3><p>Тропический микс</p></div>
-    <div class="item"><h3>Пина Колада</h3><p>Кокос + ананас</p></div>
-    <div class="item"><h3>Зелёный кактус</h3><p>Свежий и сочный</p></div>
-    <div class="item"><h3>Сенча</h3><p>Японская бодрость</p></div>
-    <div class="item"><h3>Масала</h3><p>Пряный удар</p></div>
-    <div class="item"><h3>Сердце Алтая</h3><p>Травяной сбор</p></div>
-    <div class="item"><h3>Южная Индия</h3><p>Крепкий, с характером</p></div>
+    <div class="mi"><h3>Чай классический</h3><p>чёрный или зелёный</p><div class="vols"><span class="vol">250 — 120 ₽</span><span class="vol">350 — 150 ₽</span><span class="vol">450 — 170 ₽</span></div></div>
+    <div class="mi"><h3>Чай с добавками</h3><p>лимон / смородина / каркаде</p><div class="vols"><span class="vol">100 ₽</span></div></div>
+    <div class="mi"><h3>Латте масала</h3><p>пряный и согревающий</p><div class="vols"><span class="vol">100 ₽</span></div></div>
+    <div class="mi"><h3>Листовой чай</h3><p>лимонник+имбирь · нахальный фрукт · пина колада · зелёный кактус · сенча · масала · сердце Алтая · южная Индия</p><div class="vols"><span class="vol">250 — 120 ₽</span><span class="vol">350 — 150 ₽</span><span class="vol">450 — 170 ₽</span></div></div>
+    <div class="mi"><h3>Матча с вкусами</h3><p>жёлтая груша · сакура и миндаль</p><div class="vols"><span class="vol">250 — 140 ₽</span><span class="vol">350 — 220 ₽</span><span class="vol">450 — 260 ₽</span></div></div>
   </div></div>
+
   <div class="pane" id="dessert"><div class="grid">
-    <div class="item"><h3>Капкейк белый</h3><p>Карамель и ванильный бисквит</p><span class="price">250 ₽</span></div>
-    <div class="item"><h3>Капкейк голубой</h3><p>Ежевика и шоколад</p><span class="price">250 ₽</span></div>
-    <div class="item"><h3>Трайфл «Карамель-шоколад»<span class="hit">🔥 Хит</span></h3><p>Хит!</p><span class="price">300 ₽</span></div>
-    <div class="item"><h3>Трайфл нежно-розовый</h3><p>Малина</p><span class="price">300 ₽</span></div>
-    <div class="item"><h3>Трайфл розовый</h3><p>Клубника и малина</p><span class="price">300 ₽</span></div>
-    <div class="item"><h3>Трайфл фиолетовый</h3><p>Ежевика</p><span class="price">300 ₽</span></div>
-    <div class="item"><h3>Арахисовая халва</h3><p>270 ₽</p><span class="price">270 ₽</span></div>
-    <div class="item"><h3>Печенье с предсказанием</h3><p>Маленькое чудо</p><span class="price">30 ₽</span></div>
-    <div class="item soon"><h3>Скоро: моти 🍡</h3><p>Японское нежное удовольствие — уже готовим</p></div>
+    <div class="mi"><img class="ph" src="/assets/menu-dessert.png" alt="Десерты" onerror="this.style.display='none'"><h3>Коржик молочный</h3><p>Тот самый, из детства</p><div class="vols"><span class="vol">70 ₽</span></div></div>
+    <div class="mi"><h3>Коржик шоколадный</h3><p>Какао-версия любимой классики</p><div class="vols"><span class="vol">70 ₽</span></div></div>
+    <div class="mi"><h3>Печенье с предсказанием</h3><p>Маленькое чудо с посланием внутри</p><div class="vols"><span class="vol">30 ₽</span></div></div>
+    <div class="mi"><h3>Монпансье</h3><p>Леденцы с разными питомцами сверху</p><div class="vols"><span class="vol">120 ₽</span></div></div>
+    <div class="mi"><h3>Ассорти орешков</h3><p>Хрустящая компания к кофе</p><div class="vols"><span class="vol">120 ₽</span></div></div>
+    <div class="mi"><h3>Протеиновое печенье и десерты</h3><p>В ассортименте — спроси у бариста</p></div>
+    <div class="mi soon"><h3>Бабл ти 🫧</h3><p>СКОРО</p></div>
   </div></div>
 </div></section>
 
@@ -306,7 +336,7 @@ footer{background:var(--ink);color:#c9b39e;padding:28px 0;font-size:14px}
 
 <section id="share" class="rv" style="padding-top:0"><div class="wrap">
   <div class="share-grid">
-    <div class="item share-card">
+    <div class="mi share-card">
       <h3>⭐ Понравилось у нас?</h3>
       <p>Пара тёплых слов в отзыве — лучший способ сказать спасибо и помочь соседям найти нас.</p>
       <div class="cta">
@@ -314,7 +344,7 @@ footer{background:var(--ink);color:#c9b39e;padding:28px 0;font-size:14px}
         <a class="btn btn-ghost" href="https://2gis.ru/voronezh/firm/70000001101448488" target="_blank" rel="noopener noreferrer">2ГИС</a>
       </div>
     </div>
-    <div class="item share-card">
+    <div class="mi share-card">
       <h3>📤 Расскажи друзьям</h3>
       <p>Отправь меню и карту другу — пусть утро будет добрым у всех.</p>
       <button class="btn btn-sun" onclick="shareSite()">Поделиться</button>
@@ -322,6 +352,7 @@ footer{background:var(--ink);color:#c9b39e;padding:28px 0;font-size:14px}
     </div>
   </div>
 </div></section>
+
 <section id="faq" class="rv" style="padding-top:0"><div class="wrap">
   <h2 class="h2">Вопросы и ответы</h2><p class="sub">Коротко о важном</p>
   <div class="faq-grid">
@@ -331,10 +362,11 @@ footer{background:var(--ink);color:#c9b39e;padding:28px 0;font-size:14px}
     <details class="faq"><summary>🥡 Можно посидеть у вас?</summary><p>Мы — кофе с собой: готовим напитки в дорогу. А рядом буккроссинг и фотостена.</p></details>
     <details class="faq"><summary>🚗 Где припарковаться?</summary><p>Парковка прямо напротив кофейни.</p></details>
     <details class="faq"><summary>🌱 Есть ли растительное молоко?</summary><p>Да: растительное и безлактозное — спросите у бариста.</p></details>
-    <details class="faq"><summary>🍬 Что за монпансье?</summary><p>Те самые леденцы с разными питомцами сверху. Маленькая радость к кофе.</p></details>
+    <details class="faq"><summary>🍬 Что за монпансье?</summary><p>Леденцы с разными питомцами сверху — 120 ₽. Маленькая радость к кофе.</p></details>
     <details class="faq"><summary>📚 Как получить баллы за книгу?</summary><p>Принеси книгу на полку буккроссинга и скажи бариста — начислим 20 баллов.</p></details>
   </div>
 </div></section>
+
 <section id="contacts" class="rv" style="padding-top:0"><div class="wrap">
   <h2 class="h2">Приходите в гости</h2><p class="sub">Мы совсем рядом</p>
   <div class="contact">
@@ -365,7 +397,6 @@ footer{background:var(--ink);color:#c9b39e;padding:28px 0;font-size:14px}
 var qr=qrcode(0,'M'); qr.addData('https://max.ru/id362903188360_bot'); qr.make();
 document.getElementById('qr').innerHTML=qr.createImgTag(5,10);
 
-// Живой статус Открыто/Закрыто
 function updStatus(){
   var n=new Date(), h=n.getHours()+n.getMinutes()/60;
   var open=h>=7&&h<18;
@@ -375,7 +406,6 @@ function updStatus(){
 }
 updStatus(); setInterval(updStatus,60000);
 
-// Табы + ссылка на вкладку
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   document.querySelectorAll('.pane').forEach(x=>x.classList.remove('on'));
@@ -387,7 +417,6 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   if(hash){var tab=document.querySelector('.tab[data-t="'+hash+'"]'); if(tab) tab.click();}
 })();
 
-// Стрелки карусели
 document.getElementById('carL').onclick=()=>document.getElementById('car').scrollBy({left:-320,behavior:'smooth'});
 document.getElementById('carR').onclick=()=>document.getElementById('car').scrollBy({left:320,behavior:'smooth'});
 
@@ -401,11 +430,9 @@ async function shareSite(){
     catch(e){ msg.textContent=url; }
   }
 }
-// Плавное появление секций
 const io=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.classList.add('on')),{threshold:.15});
 document.querySelectorAll('.rv').forEach(el=>io.observe(el));
 
-// Форма проверки карты
 document.getElementById('phone-input').addEventListener('input',function(){this.value=this.value.replace(/\D/g,'').slice(0,11);});
 document.getElementById('phone-form').addEventListener('submit',function(e){e.preventDefault();checkCard();});
 
