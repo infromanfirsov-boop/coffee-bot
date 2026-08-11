@@ -71,6 +71,8 @@ textarea{min-height:80px;resize:vertical}
     <div class="chart" id="chart"></div><div class="labels" id="labels"></div>
   </div>
   <div class="card"><h2>🔥 Топ товаров</h2><ul class="top" id="top"></ul></div>
+  <div class="card"><h2>⏰ Загрузка по часам (30 дней)</h2><div class="chart" id="hchart"></div><div class="labels" id="hlabels"></div></div>
+  <div class="card"><h2>🔁 Возвраты</h2><div class="kpis" id="ret" style="margin:0"></div></div>
   <div class="card">
     <h2>👥 Клиенты</h2>
     <div class="row"><input id="cq" placeholder="Поиск: имя / телефон / карта"><button class="btn small" onclick="clients()">Найти</button></div>
@@ -126,7 +128,16 @@ async function broadcast(){
   if(r.ok){const d=await r.json();m.className='ok';m.textContent=' Уходит '+d.count+' гостям…';document.getElementById('btxt').value='';}
   else{m.className='err';m.textContent=' Ошибка';}
 }
-load();
+async function extra(){
+  const r=await fetch('/admin/api/extra');
+  if(!r.ok) return;
+  const d=await r.json();
+  const max=Math.max.apply(null,d.hours.map(function(x){return x.s;}))||1;
+  document.getElementById('hchart').innerHTML=d.hours.map(function(x){return '<div class="bar" style="height:'+Math.max(4,Math.round(x.s/max*100))+'%" title="'+x.h+':00 — '+x.s+' ₽"></div>';}).join('');
+  document.getElementById('hlabels').innerHTML=d.hours.map(function(x){return '<span>'+x.h+'</span>';}).join('');
+  document.getElementById('ret').innerHTML=kpi(d.first,'первый визит')+kpi(d.loyal,'постоянные (2+ визитов)')+kpi(d.pct+'%','возвращаются');
+}
+load(); extra();
 </script>
 </body>
 </html>
