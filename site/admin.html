@@ -13,23 +13,34 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
 h1{font-size:22px}
 .box{max-width:380px;margin:60px auto;background:#fff;border-radius:var(--r);padding:28px;box-shadow:0 10px 30px rgba(43,26,18,.08)}
 .box input{width:100%;padding:14px;border-radius:12px;border:2px solid #f0e2d0;font-size:16px;margin-bottom:12px}
-.btn{width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;font-weight:800;font-size:15px;cursor:pointer}
+.btn{padding:14px 20px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;font-weight:800;font-size:15px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn.ghost{background:#fff;color:var(--ink);border:2px solid #f0e2d0}
+.btn.small{padding:8px 14px;font-size:13px;border-radius:10px}
 .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px}
 .kpi{background:#fff;border-radius:var(--r);padding:16px}
 .kpi b{display:block;font-size:20px}
 .kpi span{color:var(--mut);font-size:12px;font-weight:700}
 .card{background:#fff;border-radius:var(--r);padding:20px;margin-bottom:20px}
 .card h2{font-size:16px;margin-bottom:14px}
-.chart{display:flex;align-items:flex-end;gap:6px;height:160px}
-.bar{flex:1;background:linear-gradient(180deg,var(--sun2),var(--sun));border-radius:8px 8px 0 0;min-height:4px}
-.labels{display:flex;gap:6px;margin-top:6px}
+.chart{display:flex;align-items:flex-end;gap:4px;height:160px}
+.bar{flex:1;background:linear-gradient(180deg,var(--sun2),var(--sun));border-radius:6px 6px 0 0;min-height:4px}
+.labels{display:flex;gap:4px;margin-top:6px}
 .labels span{flex:1;text-align:center;font-size:9px;color:var(--mut)}
 .top{list-style:none}
 .top li{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0e2d0;font-weight:600}
 .top li:last-child{border:none}
-.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:10px;flex-wrap:wrap}
 .logout{background:none;border:2px solid #f0e2d0;border-radius:10px;padding:8px 14px;font-weight:700;cursor:pointer;color:var(--mut)}
 .err{color:#B3372F;font-weight:700;margin-top:10px}
+.ok{color:#1D7A3D;font-weight:700;margin-top:10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 6px;text-align:left;border-bottom:1px solid #f0e2d0}
+th{color:var(--mut);font-size:11px;text-transform:uppercase}
+.tblwrap{overflow-x:auto}
+input,select,textarea{padding:12px;border-radius:12px;border:2px solid #f0e2d0;font-size:14px;font-family:inherit;width:100%}
+textarea{min-height:80px;resize:vertical}
+.row{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.row>*{flex:1;min-width:140px}
 </style>
 </head>
 <body>
@@ -37,42 +48,83 @@ h1{font-size:22px}
 <div id="login" class="box" style="display:none">
   <h1>🔐 Кабинет владельца</h1>
   <input id="pass" type="password" placeholder="Пароль" onkeydown="if(event.key==='Enter')login()">
-  <button class="btn" onclick="login()">Войти</button>
+  <button class="btn" style="width:100%" onclick="login()">Войти</button>
   <div id="lerr" class="err"></div>
 </div>
 <div id="dash" style="display:none">
-  <div class="head"><h1>☕ Утро · панель владельца</h1><button class="logout" onclick="logout()">Выйти</button></div>
+  <div class="head">
+    <h1>☕ Утро · панель владельца</h1>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a class="btn ghost small" href="/admin/api/export">⬇️ Экспорт CSV</a>
+      <button class="logout" onclick="logout()">Выйти</button>
+    </div>
+  </div>
   <div class="kpis" id="kpis"></div>
-  <div class="card"><h2>💰 Выручка за 14 дней</h2><div class="chart" id="chart"></div><div class="labels" id="labels"></div></div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h2 style="margin:0">💰 Выручка</h2>
+      <div style="display:flex;gap:6px">
+        <button class="btn ghost small" id="b14" onclick="setDays(14)">14 дней</button>
+        <button class="btn ghost small" id="b30" onclick="setDays(30)">Месяц</button>
+      </div>
+    </div>
+    <div class="chart" id="chart"></div><div class="labels" id="labels"></div>
+  </div>
   <div class="card"><h2>🔥 Топ товаров</h2><ul class="top" id="top"></ul></div>
+  <div class="card">
+    <h2>👥 Клиенты</h2>
+    <div class="row"><input id="cq" placeholder="Поиск: имя / телефон / карта"><button class="btn small" onclick="clients()">Найти</button></div>
+    <div class="tblwrap"><table><thead><tr><th>Имя</th><th>Телефон</th><th>Визиты</th><th>Потрачено</th><th>Баллы</th><th>Был(а)</th></tr></thead><tbody id="ct"></tbody></table></div>
+  </div>
+  <div class="card">
+    <h2>📢 Рассылка</h2>
+    <div class="row"><select id="seg"><option value="active">Активные (30 дн)</option><option value="all">Все</option><option value="sleep">Уснувшие</option></select></div>
+    <textarea id="btxt" placeholder="Текст сообщения…"></textarea>
+    <div style="margin-top:10px"><button class="btn" onclick="broadcast()">Отправить</button><span id="bmsg"></span></div>
+  </div>
 </div>
 </div>
 <script>
+var DAYS=14;
 function show(id){document.getElementById('login').style.display=id==='login'?'block':'none';document.getElementById('dash').style.display=id==='dash'?'block':'none';}
 function kpi(v,l){return '<div class="kpi"><b>'+v+'</b><span>'+l+'</span></div>';}
+function setDays(n){DAYS=n;load();}
 async function login(){
   const p=document.getElementById('pass').value;
   const r=await fetch('/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:p})});
-  if(r.ok){load();}else{document.getElementById('lerr').textContent='Неверный пароль';}
+  if(r.ok){load();clients();}else{document.getElementById('lerr').textContent='Неверный пароль';}
 }
 async function logout(){await fetch('/admin/logout',{method:'POST'});show('login');}
 async function load(){
-  const r=await fetch('/admin/api/stats');
+  const r=await fetch('/admin/api/stats?days='+DAYS);
   if(r.status===401){show('login');return;}
   const d=await r.json();
   show('dash');
+  document.getElementById('b14').style.opacity=DAYS===14?1:.5;
+  document.getElementById('b30').style.opacity=DAYS===30?1:.5;
   document.getElementById('kpis').innerHTML=
-    kpi(d.today_sum+' ₽','сегодня')+
-    kpi(d.today_cnt,'чеков сегодня')+
-    kpi(d.avg+' ₽','средний чек')+
-    kpi(d.total,'всего гостей')+
-    kpi(d.active,'активны за 30 дн')+
-    kpi(d.sleeping,'уснувшие')+
-    kpi(d.liability+' ⭐','долг по баллам');
+    kpi(d.today_sum+' ₽','сегодня')+kpi(d.today_cnt,'чеков сегодня')+kpi(d.avg+' ₽','средний чек')+
+    kpi(d.total,'всего гостей')+kpi(d.active,'активны за 30 дн')+kpi(d.sleeping,'уснувшие')+kpi(d.liability+' ⭐','долг по баллам');
   const max=Math.max.apply(null,d.days.map(function(x){return x.s;}))||1;
-  document.getElementById('chart').innerHTML=d.days.map(function(x){return '<div class="bar" style="height:'+Math.max(4,Math.round(x.s/max*100))+'%" title="'+x.d+': '+x.s+' ₽"></div>';}).join('');
-  document.getElementById('labels').innerHTML=d.days.map(function(x){return '<span>'+x.d.slice(3)+'</span>';}).join('');
+  document.getElementById('chart').innerHTML=d.days.map(function(x){return '<div class="bar" style="height:'+Math.max(4,Math.round(x.s/max*100))+'%" title="'+x.d+': '+x.s+' ₽ · '+x.n+' чек."></div>';}).join('');
+  document.getElementById('labels').innerHTML=d.days.map(function(x,i){var step=Math.ceil(d.days.length/15);return (i%step===0)?'<span>'+x.d.slice(3)+'</span>':'<span></span>';}).join('');
   document.getElementById('top').innerHTML=d.top.length?d.top.map(function(t){return '<li><span>'+t.item+'</span><b>'+t.cnt+'×</b></li>';}).join(''):'<li>Пока пусто — добавляй товары при чеке</li>';
+}
+async function clients(){
+  const q=document.getElementById('cq').value;
+  const r=await fetch('/admin/api/clients?q='+encodeURIComponent(q));
+  if(r.status===401){show('login');return;}
+  const d=await r.json();
+  document.getElementById('ct').innerHTML=d.rows.map(function(x){return '<tr><td><b>'+x.name+'</b></td><td>'+x.phone+'</td><td>'+x.visits+'</td><td>'+x.spent+' ₽</td><td>'+x.bal+' ⭐</td><td>'+x.last+'</td></tr>';}).join('')||'<tr><td colspan="6">Никого не нашли</td></tr>';
+}
+async function broadcast(){
+  const t=document.getElementById('btxt').value.trim();
+  const s=document.getElementById('seg').value;
+  const m=document.getElementById('bmsg');
+  if(!t){m.textContent=' Введите текст';m.className='err';return;}
+  const r=await fetch('/admin/api/broadcast',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({seg:s,text:t})});
+  if(r.ok){const d=await r.json();m.className='ok';m.textContent=' Уходит '+d.count+' гостям…';document.getElementById('btxt').value='';}
+  else{m.className='err';m.textContent=' Ошибка';}
 }
 load();
 </script>
