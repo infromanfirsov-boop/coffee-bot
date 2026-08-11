@@ -643,6 +643,7 @@ PENDING_REVIEW = Pending()
 PENDING_PH = Pending()
 PENDING_NM = Pending()
 PENDING_WALK = Pending()
+PENDING_NEW = Pending()
 
 # === КНОПКИ ===
 def cb(t, p): return {"type": "callback", "text": t, "payload": p}
@@ -692,7 +693,8 @@ def menu(uid, name):
               [cb(STAR + " Отзыв", "show_review")]]
     if is_priv(uid):
         b += [[cb(RECEIPT + " Чек", "checkflow"), cb("🧾 Гость", "walkflow")],
-              [cb(SEARCH + " Поиск", "show_search"), cb(USERS + " Клиенты", "show_clients")]]
+              [cb(SEARCH + " Поиск", "show_search"), cb(USERS + " Клиенты", "show_clients")],
+              [cb(PLUS + " Гостю карта", "newflow")]]
         if uid in ADMINS:
             b += [[cb(CHART2 + " Топ", "show_top"), cb(CHART2 + " ABC", "show_abc"), cb(CHART2 + " RFM", "show_rfm")],
                   [cb(BULB + " Инсайты", "show_insights"), cb(EXPORT + " CSV", "export_csv"), cb(EXPORT + " Файлы", "export_files")],
@@ -1178,10 +1180,29 @@ def handle_message(uid, text, name, payload="", photo=None):
     if is_priv(uid) and p:
         op = p[0]
         if t.lower() in ("отмена", "cancel", "/cancel", "/menu"):
-            for P in (PENDING, PENDING_CASH, PENDING_ID, PENDING_PAYID, PENDING_PAY, PENDING_CHECK, PENDING_SEARCH, PENDING_WALK):
+        for P in (PENDING, PENDING_CASH, PENDING_ID, PENDING_PAYID, PENDING_PAY, ONBOARD, PENDING_CHECK, PENDING_SEARCH, PENDING_REVIEW, PENDING_WALK, PENDING_NEW):
                 P.clear(uid)
             if t.lower() == "/menu": return menu(uid, name)
             return rep(f"{CROSS} Действие отменено.", back())
+        pn = PENDING_NEW.get(uid)
+        if pn is not None and not op.startswith("/"):
+            if pn["step"] == "name":
+                nm = t.strip()
+                if len(nm) < 2: return rep(f"{WARN} Слишком короткое имя.", cancel() + back())
+                PENDING_NEW.set(uid, {"step": "phone", "name": nm})
+                return rep(f"{PHONE} Введите телефон гостя: 79991234567", cancel() + back())
+            if pn["step"] == "phone":
+                d = norm_phone(t)
+                if not d: return rep(f"{WARN} Формат: 79991234567", cancel() + back())
+                with db() as c:
+                    if c.execute("SELECT 1 FROM users WHERE phone=?", (d,)).fetchone():
+                        return rep(f"{WARN} Этот телефон уже зарегистрирован.", cancel() + back())
+                nid = "off_" + uuid.uuid4().hex[:12]
+                u2 = ensure_user(nid, pn["name"], WELCOME)
+                with db() as c:
+                    c.execute("UPDATE users SET phone=? WHERE id=?", (d, u2["id"]))
+                PENDING_NEW.clear(uid)
+                return rep(f"{OK} Карта создана!\n{CARD} {u2['card_number']}\n{GIFT} Начислено {WELCOME} баллов.\nГость может смотреть карту на сайте по своему телефону.", back())
         if PENDING_WALK.get(uid) and not op.startswith("/"):
             amount = None
             for tok in p:
@@ -1361,7 +1382,7 @@ def handle_callback(uid, payload, name):
     u = ensure_user(uid, name)
     if new and not is_priv(uid):
         return menu(uid, name)
-    PRIV = ("cashflow", "payflow", "show_search", "show_top", "show_abc", "show_rfm", "show_status", "checkflow", "walkflow")
+    PRIV = ("cashflow", "payflow", "show_search", "show_top", "show_abc", "show_rfm", "show_status", "checkflow", "walkflow", "newflow")
     if payload in PRIV or payload.startswith(("add_", "sub_", "input_", "cash_", "pay_", "sp:", "deduct_", "rcc_", "rcp_", "qa_", "sel_", "buy_", "ck_", "chk_", "ckd_", "ckn_", "book_")):
         if not is_priv(uid): return rep(f"{NO} Только персонал.", back())
     if payload in ("show_clients", "export_csv", "export_files", "show_insights", "show_broadcast") or payload.startswith(("cp:", "review_ok_", "review_no_", "phq_", "delq_", "delyes_", "nmq_")):
@@ -1410,6 +1431,9 @@ def handle_callback(uid, payload, name):
         buys = purchases_of(target["id"], 10)
         if not buys: return rep(f"{BAG} Покупок пока нет.", back())
         return rep(f"{BAG} {target['full_name'] or target['card_number']}:\n" + "\n".join(f"· {b['amount']:.0f} р. - {b['items']}" for b in buys), back())
+    if payload == "newflow":
+        PENDING_NEW.set(uid, {"step": "name"})
+        return rep(f"{PLUS} Гостю карта\nВведите имя гостя:", cancel() + back())
     if payload == "walkflow":
         PENDING_WALK.set(uid, "1")
         return rep(f"🧾 Продажа без карты\nСумма и товары, например: 600 латте, круассан", cancel() + back())
@@ -1439,7 +1463,7 @@ def handle_callback(uid, payload, name):
         PENDING_PAYID.set(uid, "1")
         return rep(f"{CARD} Оплата баллами\nВыберите клиента или введите телефон/карту/имя:", recent_buttons("rcp") + cancel() + back())
     if payload == "cancel_pending":
-        for P in (PENDING, PENDING_CASH, PENDING_ID, PENDING_PAYID, PENDING_PAY, ONBOARD, PENDING_CHECK, PENDING_SEARCH, PENDING_REVIEW, PENDING_WALK):
+            for P in (PENDING, PENDING_CASH, PENDING_ID, PENDING_PAYID, PENDING_PAY, PENDING_CHECK, PENDING_SEARCH, PENDING_WALK, PENDING_NEW):
             P.clear(uid)
         return rep(f"{CROSS} Отменено.", back())
     if payload.startswith("rcc_"):
@@ -1852,6 +1876,23 @@ def admin_extra(request: Request):
         loyal = c.execute("SELECT COUNT(*) n FROM users WHERE visits_count>=2").fetchone()["n"]
     pct = round(loyal * 100 / (first + loyal)) if (first + loyal) else 0
     return {"ok": True, "hours": hours, "first": first, "loyal": loyal, "pct": pct}
+@app.get("/api/webcard")
+def api_webcard(phone: str = "", x_api_key: str = Header(default=""), request: Request = None):
+    if x_api_key != SITE_API_KEY:
+        raise HTTPException(403, "Forbidden")
+    ip = "unknown"
+    if request:
+        xff = request.headers.get("x-forwarded-for", "")
+        ip = xff.split(",")[0].strip() if xff else (request.client.host or "unknown")
+    if not check_rate("wc_" + ip, limit=10, window=60):
+        raise HTTPException(429, "Too many requests")
+    d = norm_phone(phone)
+    if not d: return {"ok": False}
+    with db() as c:
+        r = c.execute("SELECT id,card_number,visits_count FROM users WHERE phone=?", (d,)).fetchone()
+        if not r: return {"ok": False}
+        v = r["visits_count"]
+    return {"ok": True, "card": r["card_number"], "points": balance(r["id"]), "visits": v, "level": lvl_name(v), "pct": pct(v)}
 def make_table_qr():
     try:
         me = http.get(f"{API}/me", headers=H, timeout=10).json()
