@@ -1111,11 +1111,6 @@ async def lifespan(app):
         threading.Thread(target=lambda:alert_admins(f"{OK} Бот запущен."),daemon=True).start()
     yield
 app=FastAPI(lifespan=lifespan)
-@app.get("/assets/{name}")
-def assets(name:str):
-    p=os.path.join(os.path.dirname(os.path.abspath(__file__)),"site",name)
-    if os.path.isfile(p): return FileResponse(p)
-    raise HTTPException(404,"Not found")
 @app.get("/api/card")
 def api_card(phone:str="", x_api_key: str = Header(default="")):
     # Защита: проверяем секретный ключ из заголовка
