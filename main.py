@@ -637,6 +637,7 @@ ONBOARD = Pending()
 PENDING_CHECK = Pending()
 PENDING_SEARCH = Pending()
 PENDING_REVIEW = Pending()
+PENDING_PH = Pending()
 
 # === КНОПКИ ===
 def cb(t, p): return {"type": "callback", "text": t, "payload": p}
@@ -705,6 +706,8 @@ def card(u):
     if ex: t += f"\n{WARN} {ex} баллов сгорят за {WARN_DAYS} дн.!\n"
     if u["birthday"]: t += f"\n{CAKE} ДР: {u['birthday']}\n"
     t += f"\nБаллами оплачивается до {MAX_PAY}% чека.\nНазовите номер бариста {CUP}"
+    if not u["phone"]:
+        t += f"\n\n{PHONE} Укажите телефон: /phone 79991234567 — и ваша карта найдётся на сайте."
     return rep(t, back())
 
 def hist(u):
@@ -1009,7 +1012,8 @@ def admin_card(u):
         txt += f"\n{BAG} Покупает: {', '.join(items)}"
     b = [[cb(PLUS + "50", f"add_50_{u['card_number']}"), cb(PLUS + "100", f"add_100_{u['card_number']}"), cb(PLUS + "200", f"add_200_{u['card_number']}")],
          [cb(MINUS + "50", f"sub_50_{u['card_number']}"), cb(MINUS + "100", f"sub_100_{u['card_number']}"), cb(MINUS + "200", f"sub_200_{u['card_number']}")],
-         [cb(RECEIPT + " Чек", f"chk_{u['card_number']}"), cb(BAG + " Покупки", f"buy_{u['card_number']}")]] + back()
+         [cb(RECEIPT + " Чек", f"chk_{u['card_number']}"), cb(BAG + " Покупки", f"buy_{u['card_number']}")],
+         [cb(PHONE + " Телефон", f"phq_{u['card_number']}"), cb("🗑 Удалить", f"delq_{u['card_number']}")]] + back()
     return rep(txt, b)
 
 def apply_delta(uid, delta, target, comment=""):
@@ -1169,6 +1173,16 @@ def handle_message(uid, text, name, payload="", photo=None):
         if PENDING_SEARCH.get(uid) and not op.startswith("/"):
             PENDING_SEARCH.clear(uid)
             return do_search(uid, t)
+        if PENDING_PH.get(uid) and not op.startswith("/"):
+            cn = PENDING_PH.get(uid)
+            d = norm_phone(op)
+            if not d: return rep(f"{PHONE} Пример: 79991234567", cancel() + back())
+            with db() as c:
+                if c.execute("SELECT 1 FROM users WHERE phone=? AND card_number!=?", (d, cn)).fetchone():
+                    return rep(f"{WARN} Телефон уже привязан к другому клиенту.", cancel() + back())
+                c.execute("UPDATE users SET phone=? WHERE card_number=?", (d, cn))
+            PENDING_PH.clear(uid)
+            return rep(f"{OK} Телефон сохранён: {d}", back())
         if PENDING_ID.get(uid):
             target = find_user(op)
             if target:
@@ -1299,7 +1313,7 @@ def handle_callback(uid, payload, name):
     PRIV = ("cashflow", "payflow", "show_search", "show_top", "show_abc", "show_rfm", "show_status", "checkflow")
     if payload in PRIV or payload.startswith(("add_", "sub_", "input_", "cash_", "pay_", "sp:", "deduct_", "rcc_", "rcp_", "qa_", "sel_", "buy_", "ck_", "chk_", "ckd_", "ckn_")):
         if not is_priv(uid): return rep(f"{NO} Только персонал.", back())
-    if payload in ("show_clients", "export_csv", "export_files", "show_insights", "show_broadcast") or payload.startswith(("cp:", "review_ok_", "review_no_")):
+    if payload in ("show_clients", "export_csv", "export_files", "show_insights", "show_broadcast") or payload.startswith(("cp:", "review_ok_", "review_no_", "phq_", "delq_", "delyes_")):
         if uid not in ADMINS: return rep(f"{NO} Только админ.", back())
     if payload == "show_menu": return menu(uid, name)
     if payload == "show_help": return help_screen(u)
@@ -1405,6 +1419,32 @@ def handle_callback(uid, payload, name):
         ok, nb = spend_points(target["id"], amount, f"{CARD} Оплата баллами")
         PENDING_PAY.clear(uid)
         return rep(f"{OK} Списано {amount}\nОстаток: {STAR} {nb}", back()) if ok else rep(f"{WARN} Не хватило баллов", back())
+    if payload.startswith("phq_"):
+        cn = payload[4:]
+        PENDING_PH.set(uid, cn)
+        return rep(f"{PHONE} Введите телефон клиента: 79991234567", cancel() + back())
+    if payload.startswith("delq_"):
+        cn = payload[4:]
+        t = find_user(cn)
+        if not t: return rep(f"{WARN} Не найден.", back())
+        return rep(f"{WARN} Удалить {t['full_name'] or cn} безвозвратно?",
+                   [[cb("🗑 Да, удалить", f"delyes_{cn}"), cb(CROSS + " Нет", "show_menu")]])
+    if payload.startswith("delyes_"):
+        cn = payload[4:]
+        with db() as c:
+            r = c.execute("SELECT id,max_user_id,is_admin FROM users WHERE card_number=?", (cn,)).fetchone()
+            if not r: return rep(f"{WARN} Не найден.", back())
+            if str(r["max_user_id"]) in ADMINS or str(r["max_user_id"]) in STAFF or r["is_admin"]:
+                return rep(f"{WARN} Нельзя удалить персонал.", back())
+            i = r["id"]
+            c.execute("DELETE FROM points_batches WHERE user_id=?", (i,))
+            c.execute("DELETE FROM transactions WHERE user_id=?", (i,))
+            c.execute("DELETE FROM purchases WHERE user_id=?", (i,))
+            c.execute("DELETE FROM promo_use WHERE user_id=?", (i,))
+            c.execute("DELETE FROM review_requests WHERE user_id=?", (i,))
+            c.execute("DELETE FROM users WHERE id=?", (i,))
+        BAL.drop(i)
+        return rep(f"{OK} Клиент удалён из базы.", back())
     if payload.startswith("add_") or payload.startswith("sub_"):
         parts = payload.split("_", 2)
         target = find_user(parts[2])
