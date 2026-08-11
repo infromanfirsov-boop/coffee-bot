@@ -12,7 +12,7 @@ import qrcode, requests, urllib3, uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 try:
@@ -203,6 +203,7 @@ CREATE TABLE IF NOT EXISTS promo_use(id INTEGER PRIMARY KEY AUTOINCREMENT,
 CREATE TABLE IF NOT EXISTS review_requests(id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER, status TEXT DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS walkins(id INTEGER PRIMARY KEY AUTOINCREMENT, amount REAL, item TEXT, receipt_id TEXT DEFAULT '', created_at TIMESTAMP);
 CREATE TABLE IF NOT EXISTS kv(key TEXT PRIMARY KEY, value TEXT);
 CREATE INDEX IF NOT EXISTS i_card ON users(card_number);
 CREATE INDEX IF NOT EXISTS i_phone ON users(phone);
@@ -641,6 +642,7 @@ PENDING_SEARCH = Pending()
 PENDING_REVIEW = Pending()
 PENDING_PH = Pending()
 PENDING_NM = Pending()
+PENDING_WALK = Pending()
 
 # === КНОПКИ ===
 def cb(t, p): return {"type": "callback", "text": t, "payload": p}
@@ -689,7 +691,7 @@ def menu(uid, name):
         b += [[cb(MEDAL + " Награды", "show_badges"), cb(HAND + " Пригласить", "show_refer")],
               [cb(STAR + " Отзыв", "show_review")]]
     if is_priv(uid):
-        b += [[cb(RECEIPT + " Чек", "checkflow")],
+        b += [[cb(RECEIPT + " Чек", "checkflow"), cb("🧾 Гость", "walkflow")],
               [cb(SEARCH + " Поиск", "show_search"), cb(USERS + " Клиенты", "show_clients")]]
         if uid in ADMINS:
             b += [[cb(CHART2 + " Топ", "show_top"), cb(CHART2 + " ABC", "show_abc"), cb(CHART2 + " RFM", "show_rfm")],
@@ -1176,10 +1178,30 @@ def handle_message(uid, text, name, payload="", photo=None):
     if is_priv(uid) and p:
         op = p[0]
         if t.lower() in ("отмена", "cancel", "/cancel", "/menu"):
-            for P in (PENDING, PENDING_CASH, PENDING_ID, PENDING_PAYID, PENDING_PAY, PENDING_CHECK, PENDING_SEARCH):
+            for P in (PENDING, PENDING_CASH, PENDING_ID, PENDING_PAYID, PENDING_PAY, PENDING_CHECK, PENDING_SEARCH, PENDING_WALK):
                 P.clear(uid)
             if t.lower() == "/menu": return menu(uid, name)
             return rep(f"{CROSS} Действие отменено.", back())
+        if PENDING_WALK.get(uid) and not op.startswith("/"):
+            amount = None
+            for tok in p:
+                if is_float(tok): amount = float(tok); break
+            if amount is None or amount <= 0:
+                return rep(f"{WARN} Введите сумму числом, например: 600", cancel() + back())
+            items = []
+            for tok in p:
+                if is_float(tok): continue
+                items += [x.strip().lower() for x in tok.split(",") if x.strip()]
+            rid = uuid.uuid4().hex[:8]
+            with db() as c:
+                if items:
+                    c.executemany("INSERT INTO walkins(amount,item,receipt_id,created_at) VALUES(?,?,?,?)",
+                                  [(amount, it, rid, datetime.now()) for it in items])
+                else:
+                    c.execute("INSERT INTO walkins(amount,item,receipt_id,created_at) VALUES(?,?,?,?)",
+                              (amount, "", rid, datetime.now()))
+            PENDING_WALK.clear(uid)
+            return rep(f"{OK} Гостевой чек сохранён: {amount:.0f} ₽" + (f"\n{BAG} {', '.join(items)}" if items else ""), back())
         if PENDING_SEARCH.get(uid) and not op.startswith("/"):
             PENDING_SEARCH.clear(uid)
             return do_search(uid, t)
@@ -1339,7 +1361,7 @@ def handle_callback(uid, payload, name):
     u = ensure_user(uid, name)
     if new and not is_priv(uid):
         return menu(uid, name)
-    PRIV = ("cashflow", "payflow", "show_search", "show_top", "show_abc", "show_rfm", "show_status", "checkflow")
+    PRIV = ("cashflow", "payflow", "show_search", "show_top", "show_abc", "show_rfm", "show_status", "checkflow", "walkflow")
     if payload in PRIV or payload.startswith(("add_", "sub_", "input_", "cash_", "pay_", "sp:", "deduct_", "rcc_", "rcp_", "qa_", "sel_", "buy_", "ck_", "chk_", "ckd_", "ckn_", "book_")):
         if not is_priv(uid): return rep(f"{NO} Только персонал.", back())
     if payload in ("show_clients", "export_csv", "export_files", "show_insights", "show_broadcast") or payload.startswith(("cp:", "review_ok_", "review_no_", "phq_", "delq_", "delyes_", "nmq_")):
@@ -1388,6 +1410,9 @@ def handle_callback(uid, payload, name):
         buys = purchases_of(target["id"], 10)
         if not buys: return rep(f"{BAG} Покупок пока нет.", back())
         return rep(f"{BAG} {target['full_name'] or target['card_number']}:\n" + "\n".join(f"· {b['amount']:.0f} р. - {b['items']}" for b in buys), back())
+    if payload == "walkflow":
+        PENDING_WALK.set(uid, "1")
+        return rep(f"🧾 Продажа без карты\nСумма и товары, например: 600 латте, круассан", cancel() + back())
     if payload == "checkflow":
         PENDING_CHECK.set(uid, {"card": None, "amount": None, "items": None})
         return rep(f"{RECEIPT} Чек\nВыберите клиента или введите телефон/карту/имя:", recent_buttons("ck") + cancel() + back())
@@ -1414,7 +1439,7 @@ def handle_callback(uid, payload, name):
         PENDING_PAYID.set(uid, "1")
         return rep(f"{CARD} Оплата баллами\nВыберите клиента или введите телефон/карту/имя:", recent_buttons("rcp") + cancel() + back())
     if payload == "cancel_pending":
-        for P in (PENDING, PENDING_CASH, PENDING_ID, PENDING_PAYID, PENDING_PAY, ONBOARD, PENDING_CHECK, PENDING_SEARCH, PENDING_REVIEW):
+        for P in (PENDING, PENDING_CASH, PENDING_ID, PENDING_PAYID, PENDING_PAY, ONBOARD, PENDING_CHECK, PENDING_SEARCH, PENDING_REVIEW, PENDING_WALK):
             P.clear(uid)
         return rep(f"{CROSS} Отменено.", back())
     if payload.startswith("rcc_"):
@@ -1736,28 +1761,80 @@ def admin_logout(request: Request):
     return resp
 
 @app.get("/admin/api/stats")
-def admin_stats(request: Request):
+def admin_stats(request: Request, days: int = 14):
     if not admin_ok(request):
         raise HTTPException(401, "Нужен вход")
+    if days not in (14, 30): days = 14
     now = datetime.now()
     ma = now - timedelta(days=30)
+    def day(c, d0):
+        rows = c.execute("SELECT MAX(amount) v FROM purchases WHERE created_at LIKE ? GROUP BY COALESCE(NULLIF(receipt_id,''),created_at)", (d0 + "%",)).fetchall()
+        rows += c.execute("SELECT MAX(amount) v FROM walkins WHERE created_at LIKE ? GROUP BY COALESCE(NULLIF(receipt_id,''),created_at)", (d0 + "%",)).fetchall()
+        vals = [r["v"] for r in rows]
+        return round(sum(vals)), len(vals)
     with db_ro() as c:
         total = c.execute("SELECT COUNT(*) n FROM users").fetchone()["n"]
         active = c.execute("SELECT COUNT(*) n FROM users WHERE last_visit>=?", (ma,)).fetchone()["n"]
         sleeping = c.execute("SELECT COUNT(*) n FROM users WHERE last_visit IS NOT NULL AND last_visit<?", (ma,)).fetchone()["n"]
         liability = int(c.execute("SELECT COALESCE(SUM(points_left),0) FROM points_batches WHERE points_left>0 AND expires_at>?", (now,)).fetchone()[0])
-        days = []
-        for i in range(13, -1, -1):
+        series = []
+        for i in range(days - 1, -1, -1):
             d0 = (now - timedelta(days=i)).strftime("%Y-%m-%d")
-            r = c.execute("SELECT COALESCE(SUM(amount),0) s, COUNT(*) n FROM purchases WHERE created_at LIKE ?", (d0 + "%",)).fetchone()
-            days.append({"d": d0[5:], "s": round(r["s"])})
-        t0 = now.strftime("%Y-%m-%d")
-        t = c.execute("SELECT COALESCE(SUM(amount),0) s, COUNT(*) n FROM purchases WHERE created_at LIKE ?", (t0 + "%",)).fetchone()
-        avg = c.execute("SELECT COALESCE(AVG(amount),0) a FROM purchases WHERE created_at LIKE ?", (t0 + "%",)).fetchone()["a"]
-        top = c.execute("SELECT item, COUNT(*) cnt FROM purchases WHERE item!='' GROUP BY item ORDER BY cnt DESC LIMIT 5").fetchall()
+            s, n = day(c, d0)
+            series.append({"d": d0[5:], "s": s, "n": n})
+        s, n = day(c, now.strftime("%Y-%m-%d"))
+        avg = round(s / n) if n else 0
+        top = c.execute("SELECT item, SUM(cnt) c FROM (SELECT item, COUNT(*) cnt FROM purchases WHERE item!='' GROUP BY item UNION ALL SELECT item, COUNT(*) cnt FROM walkins WHERE item!='' GROUP BY item) GROUP BY item ORDER BY c DESC LIMIT 5").fetchall()
     return {"ok": True, "total": total, "active": active, "sleeping": sleeping, "liability": liability,
-            "today_sum": round(t["s"]), "today_cnt": t["n"], "avg": round(avg), "days": days,
-            "top": [{"item": r["item"], "cnt": r["cnt"]} for r in top]}
+            "today_sum": s, "today_cnt": n, "avg": avg, "days": series,
+            "top": [{"item": r["item"], "cnt": r["c"]} for r in top]}
+@app.get("/admin/api/clients")
+def admin_clients(request: Request, q: str = ""):
+    if not admin_ok(request): raise HTTPException(401, "Нужен вход")
+    with db_ro() as c:
+        if q:
+            qq = q.strip().lower()
+            rows = c.execute("SELECT * FROM users WHERE name_lc LIKE ? OR phone LIKE ? OR card_number LIKE ? ORDER BY last_visit DESC LIMIT 50",
+                             (f"%{qq}%", f"%{q}%", f"%{q.upper()}%")).fetchall()
+        else:
+            rows = c.execute("SELECT * FROM users ORDER BY last_visit DESC LIMIT 100").fetchall()
+    out = []
+    for r in rows:
+        out.append({"name": r["full_name"] or "—", "phone": r["phone"] or "—", "card": r["card_number"],
+                    "visits": r["visits_count"], "spent": round(r["total_spent"]), "bal": balance(r["id"]),
+                    "last": (r["last_visit"] or "—")[:16]})
+    return {"ok": True, "rows": out}
+
+@app.post("/admin/api/broadcast")
+async def admin_broadcast(request: Request):
+    if not admin_ok(request): raise HTTPException(401, "Нужен вход")
+    try: d = await request.json()
+    except Exception: raise HTTPException(400, "Bad JSON")
+    seg = d.get("seg", "active")
+    body = (d.get("text") or "").strip()
+    if seg not in ("all", "active", "sleep") or not body:
+        raise HTTPException(400, "Нужны seg и text")
+    now = datetime.now()
+    ma = now - timedelta(days=30)
+    with db() as c:
+        if seg == "all": rows = c.execute("SELECT max_user_id FROM users").fetchall()
+        elif seg == "active": rows = c.execute("SELECT max_user_id FROM users WHERE last_visit>=?", (ma,)).fetchall()
+        else: rows = c.execute("SELECT max_user_id FROM users WHERE last_visit<? OR last_visit IS NULL", (ma,)).fetchall()
+    ids = [r["max_user_id"] for r in rows]
+    def run():
+        n = 0
+        for uid in ids:
+            if send_text(int(uid), body): n += 1
+            time.sleep(0.5)
+        log.info("[broadcast-web] %s -> %d", seg, n)
+    threading.Thread(target=run, daemon=True).start()
+    return {"ok": True, "count": len(ids)}
+
+@app.get("/admin/api/export")
+def admin_export(request: Request):
+    if not admin_ok(request): raise HTTPException(401, "Нужен вход")
+    return Response(content=export_csv(), media_type="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=clients.csv"})
 def make_table_qr():
     try:
         me = http.get(f"{API}/me", headers=H, timeout=10).json()
