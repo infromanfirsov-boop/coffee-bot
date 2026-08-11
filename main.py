@@ -12,7 +12,7 @@ import qrcode, requests, urllib3, uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 try:
@@ -1044,8 +1044,11 @@ def apply_cashback(target, amount, items=None):
         c.execute("UPDATE users SET visits_count=visits_count+1,total_spent=total_spent+?,last_visit=? WHERE id=?",
                   (amount, datetime.now(), target["id"]))
         if items:
-            c.executemany("INSERT INTO purchases(user_id,amount,item,receipt_id) VALUES(?,?,?,?)",
-                          [(target["id"], amount, it, rid) for it in items])
+            c.executemany("INSERT INTO purchases(user_id,amount,item,receipt_id,created_at) VALUES(?,?,?,?,?)",
+                          [(target["id"], amount, it, rid, datetime.now()) for it in items])
+        else:
+            c.execute("INSERT INTO purchases(user_id,amount,item,receipt_id,created_at) VALUES(?,?,?,?,?)",
+                      (target["id"], amount, "", rid, datetime.now()))
         ref = c.execute("SELECT referred_by,ref_done FROM users WHERE id=?", (target["id"],)).fetchone()
         if ref and ref["referred_by"] and not ref["ref_done"]:
             inv_row = c.execute("SELECT id,max_user_id FROM users WHERE card_number=?", (ref["referred_by"],)).fetchone()
@@ -1689,6 +1692,72 @@ async def webhook(request: Request, x_max_bot_api_secret: str | None = Header(de
     await asyncio.to_thread(process_update, d)
     return {"ok": True}
 
+# === АДМИН-ПАНЕЛЬ ===
+def admin_ok(request: Request) -> bool:
+    tok = request.cookies.get("utro_admin", "")
+    if not tok: return False
+    v = kv_get("admin_tok_" + tok)
+    if not v: return False
+    try:
+        return datetime.fromisoformat(v) > datetime.now()
+    except ValueError:
+        return False
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin_page():
+    p = os.path.join(BASE, "site", "admin.html")
+    try:
+        with open(p, encoding="utf-8") as f: return f.read()
+    except OSError:
+        return "<h1>admin.html не найден</h1>"
+
+@app.post("/admin/login")
+async def admin_login(request: Request):
+    try:
+        d = await request.json()
+    except Exception:
+        raise HTTPException(400, "Bad JSON")
+    if d.get("password") != ADMIN_PASS:
+        raise HTTPException(403, "Неверный пароль")
+    tok = uuid.uuid4().hex
+    kv_set("admin_tok_" + tok, (datetime.now() + timedelta(hours=24)).isoformat())
+    resp = JSONResponse({"ok": True})
+    resp.set_cookie("utro_admin", tok, max_age=86400, httponly=True, samesite="lax")
+    return resp
+
+@app.post("/admin/logout")
+def admin_logout(request: Request):
+    tok = request.cookies.get("utro_admin", "")
+    if tok:
+        with db() as c:
+            c.execute("DELETE FROM kv WHERE key=?", ("admin_tok_" + tok,))
+    resp = JSONResponse({"ok": True})
+    resp.delete_cookie("utro_admin")
+    return resp
+
+@app.get("/admin/api/stats")
+def admin_stats(request: Request):
+    if not admin_ok(request):
+        raise HTTPException(401, "Нужен вход")
+    now = datetime.now()
+    ma = now - timedelta(days=30)
+    with db_ro() as c:
+        total = c.execute("SELECT COUNT(*) n FROM users").fetchone()["n"]
+        active = c.execute("SELECT COUNT(*) n FROM users WHERE last_visit>=?", (ma,)).fetchone()["n"]
+        sleeping = c.execute("SELECT COUNT(*) n FROM users WHERE last_visit IS NOT NULL AND last_visit<?", (ma,)).fetchone()["n"]
+        liability = int(c.execute("SELECT COALESCE(SUM(points_left),0) FROM points_batches WHERE points_left>0 AND expires_at>?", (now,)).fetchone()[0])
+        days = []
+        for i in range(13, -1, -1):
+            d0 = (now - timedelta(days=i)).strftime("%Y-%m-%d")
+            r = c.execute("SELECT COALESCE(SUM(amount),0) s, COUNT(*) n FROM purchases WHERE created_at LIKE ?", (d0 + "%",)).fetchone()
+            days.append({"d": d0[5:], "s": round(r["s"])})
+        t0 = now.strftime("%Y-%m-%d")
+        t = c.execute("SELECT COALESCE(SUM(amount),0) s, COUNT(*) n FROM purchases WHERE created_at LIKE ?", (t0 + "%",)).fetchone()
+        avg = c.execute("SELECT COALESCE(AVG(amount),0) a FROM purchases WHERE created_at LIKE ?", (t0 + "%",)).fetchone()["a"]
+        top = c.execute("SELECT item, COUNT(*) cnt FROM purchases WHERE item!='' GROUP BY item ORDER BY cnt DESC LIMIT 5").fetchall()
+    return {"ok": True, "total": total, "active": active, "sleeping": sleeping, "liability": liability,
+            "today_sum": round(t["s"]), "today_cnt": t["n"], "avg": round(avg), "days": days,
+            "top": [{"item": r["item"], "cnt": r["cnt"]} for r in top]}
 def make_table_qr():
     try:
         me = http.get(f"{API}/me", headers=H, timeout=10).json()
