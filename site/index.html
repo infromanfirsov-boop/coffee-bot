@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Кофейня «Утро» — кофе с собой · Воронеж, Ленинский пр-т, 16</title>
 <meta name="description" content="Кофе с собой «Утро» на Ленинском проспекте 16. Рейтинг 4.9. Авторский кофе, лимонады, чай, десерты. Ежедневно 7:00–18:00.">
+<meta property="og:title" content="Кофейня «Утро» — мы открываем солнце по кусочкам">
+<meta property="og:description" content="Кофе с собой на Ленинском, 16. Кешбэк до 10%, пожелания на стаканчиках, буккроссинг. Ежедневно 7:00–18:00.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="/assets/hero.png">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"CafeOrCoffeeShop","name":"Кофейня «Утро»","address":{"@type":"PostalAddress","streetAddress":"Ленинский проспект, 16","addressLocality":"Воронеж"},"telephone":"+7 952 550-39-20","openingHours":"Mo-Su 07:00-18:00","aggregateRating":{"@type":"AggregateRating","ratingValue":"4.9","reviewCount":"100"}}
+</script>
 <script type="text/javascript">
 (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
 m[i].l=1*new Date();
@@ -15,16 +22,16 @@ ym(100518598, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true,
 </script>
 <noscript><div><img src="https://mc.yandex.ru/watch/100518598" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
 <link rel="manifest" href="/static/manifest.webmanifest">
-<meta name="theme-color" content="#0B0B0D">
+<meta name="theme-color" content="#2B1A12">
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/static/sw.js'));}</script>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
+<link rel="icon" type="image/png" href="/assets/logo.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/unbounded@latest/cyrillic-500-normal.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/unbounded@latest/cyrillic-800-normal.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/manrope@latest/cyrillic-400-normal.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/manrope@latest/cyrillic-600-normal.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/manrope@latest/cyrillic-800-normal.css">
 <style>
-:root{--ink:#0B0B0D;--bg:#F6F8FA;--mut:#6B7280;--blue:#1B87C9;--blue2:#0E6BA8;--sky:#7EC8E3;--card:#fff;--r:22px}
+:root{--ink:#2B1A12;--choc:#4A2E1D;--bg:#FFF7EE;--mut:#8a7666;--sun:#FF7A00;--sun2:#FF9E3D;--gold:#F5A623;--card:#fff;--r:22px}
 *{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}
 body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(--ink);overflow-x:hidden}
 h1,h2,.logo{font-family:'Unbounded',sans-serif}
@@ -34,64 +41,82 @@ header{position:sticky;top:0;z-index:50;background:var(--ink)}
 .logo{display:flex;align-items:center;gap:12px;color:#fff;text-decoration:none}
 .logo img{height:46px;width:46px;border-radius:12px;object-fit:cover;background:#fff;padding:3px}
 .logo b{font-size:18px;letter-spacing:.1em}
-.logo small{display:block;color:#9aa4ae;font-size:11px;letter-spacing:.2em}
+.logo small{display:block;color:#c9b39e;font-size:11px;letter-spacing:.2em}
 .menu{display:flex;gap:24px;font-weight:600;font-size:15px}
-.menu a{color:#cfd6dd;text-decoration:none}.menu a:hover{color:#fff}
+.menu a{color:#e8d9c8;text-decoration:none}.menu a:hover{color:#fff}
 .btn{display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;text-decoration:none;font-family:'Manrope';font-weight:800;font-size:15px;padding:13px 22px;border-radius:14px;transition:.2s}
-.btn-blue{background:var(--blue);color:#fff;box-shadow:0 8px 20px rgba(27,135,201,.35)}.btn-blue:hover{transform:translateY(-2px)}
-.btn-ghost{background:#fff;color:var(--ink);border:2px solid #e5e9ee}.btn-ghost:hover{border-color:var(--blue)}
+.btn-sun{background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;box-shadow:0 8px 20px rgba(255,122,0,.35)}.btn-sun:hover{transform:translateY(-2px)}
+.btn-ghost{background:#fff;color:var(--ink);border:2px solid #f0e2d0}.btn-ghost:hover{border-color:var(--sun)}
+.status{display:inline-flex;align-items:center;gap:8px;font-weight:800;padding:8px 16px;border-radius:99px;font-size:14px}
+.status.open{background:#E8F7EC;color:#1D7A3D;border:2px solid #BFE8CC}
+.status.closed{background:#FDECEC;color:#B3372F;border:2px solid #F5C6C0}
 .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding:60px 0 44px}
-.badge{display:inline-flex;gap:8px;background:#fff;border:2px solid #dbe7f2;color:var(--blue2);font-weight:800;padding:8px 16px;border-radius:99px;font-size:14px}
+.badges{display:flex;gap:10px;flex-wrap:wrap}
+.badge{display:inline-flex;gap:8px;background:#fff;border:2px solid #f0e2d0;color:var(--choc);font-weight:800;padding:8px 16px;border-radius:99px;font-size:14px}
 .hero h1{font-size:clamp(30px,5vw,52px);font-weight:800;line-height:1.08;margin:18px 0}
-.hero h1 em{font-style:normal;color:var(--blue)}
+.hero h1 em{font-style:normal;color:var(--sun)}
 .hero p{font-size:18px;color:var(--mut);max-width:480px;margin-bottom:24px}
 .cta{display:flex;gap:12px;flex-wrap:wrap}
-.hero-img img{width:100%;border-radius:30px;box-shadow:0 30px 60px rgba(11,11,13,.18);animation:float 6s ease-in-out infinite;aspect-ratio:4/3}
+.hero-img{position:relative;border-radius:30px;min-height:280px;background:linear-gradient(135deg,#FFD9AE,#FFF1DE);display:flex;align-items:center;justify-content:center;box-shadow:0 30px 60px rgba(43,26,18,.15)}
+.hero-ph{font-size:100px;animation:float 6s ease-in-out infinite}
+.hero-img img{position:relative;z-index:1;width:100%;border-radius:30px;aspect-ratio:4/3;object-fit:cover}
 @keyframes float{50%{transform:translateY(-12px)}}
-.tick{background:var(--blue);color:#fff;overflow:hidden;padding:12px 0;font-weight:700}
+.tick{background:linear-gradient(90deg,var(--sun),var(--sun2));color:#fff;overflow:hidden;padding:12px 0;font-weight:700}
 .tick div{display:flex;gap:48px;white-space:nowrap;animation:mq 22s linear infinite;width:max-content}
 @keyframes mq{to{transform:translateX(-50%)}}
 section{padding:64px 0}
 .h2{font-size:clamp(24px,3.4vw,36px);font-weight:800;margin-bottom:8px}
 .sub{color:var(--mut);font-size:17px;margin-bottom:30px}
 .tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:26px}
-.tab{padding:12px 20px;border-radius:99px;border:2px solid #e5e9ee;background:#fff;font-weight:800;cursor:pointer;font-size:15px}
+.tab{padding:12px 20px;border-radius:99px;border:2px solid #f0e2d0;background:#fff;font-weight:800;cursor:pointer;font-size:15px}
 .tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
-.item{background:var(--card);border:1px solid #eceff3;border-radius:var(--r);padding:18px;transition:.25s}
-.item:hover{transform:translateY(-4px);box-shadow:0 16px 34px rgba(11,11,13,.1)}
+.item{background:var(--card);border:1px solid #f0e2d0;border-radius:var(--r);padding:18px;transition:.25s}
+.item:hover{transform:translateY(-4px);box-shadow:0 16px 34px rgba(43,26,18,.1)}
 .item h3{font-size:16px;margin-bottom:6px}
 .item p{color:var(--mut);font-size:14px;line-height:1.5}
-.price{display:inline-block;margin-top:8px;font-weight:800;color:var(--blue2);background:#eaf4fb;padding:6px 12px;border-radius:10px}
+.price{display:inline-block;margin-top:8px;font-weight:800;color:#C2540A;background:#FFE8D2;padding:6px 12px;border-radius:10px}
+.hit{display:inline-block;margin-left:8px;background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;font-size:12px;font-weight:800;padding:3px 10px;border-radius:99px;vertical-align:middle}
+.soon{border:2px dashed #FFD9AE;background:#FFF9F2;color:#B36B2E}
 .pane{display:none}.pane.on{display:block;animation:fade .4s}
 @keyframes fade{from{opacity:0;transform:translateY(8px)}}
+.ph-card{position:relative;border-radius:var(--r);overflow:hidden;aspect-ratio:4/3;background:linear-gradient(135deg,#FFD9AE,#FFF1DE)}
+.ph-card img{width:100%;height:100%;object-fit:cover;display:block}
+.ph-fallback{position:absolute;inset:0;display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;color:var(--choc);font-weight:800;font-size:16px;text-align:center;padding:10px}
+.ph-fallback span{font-size:44px}
+.ph-card.hasimg .ph-fallback{display:none}
+.carwrap{position:relative}
 .car{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:10px}
 .car .item{min-width:290px;scroll-snap-align:start;text-decoration:none;color:inherit;display:block}
+.car-btn{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;border:none;background:#fff;box-shadow:0 6px 18px rgba(43,26,18,.18);font-size:20px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:5}
+.car-btn.l{left:-12px}.car-btn.r{right:-12px}
+@media(min-width:861px){.car-btn{display:flex}}
 .ava{display:inline-flex;width:46px;height:46px;border-radius:50%;color:#fff;font-weight:800;align-items:center;justify-content:center;font-size:18px}
 .top{display:flex;gap:12px;align-items:center;margin-bottom:10px}
-.stars{color:#F5A623;letter-spacing:2px}
+.stars{color:var(--gold);letter-spacing:2px}
 .who{font-weight:800;margin-top:12px;font-size:13px;color:var(--mut);display:flex;justify-content:space-between}
-.who span{color:var(--blue)}
+.who span{color:var(--sun)}
 .rphoto{width:100%;height:120px;object-fit:cover;border-radius:14px;margin-top:10px;aspect-ratio:29/12}
-.loyal{background:var(--ink);color:#fff;border-radius:32px;padding:48px;display:grid;grid-template-columns:1.1fr .9fr;gap:36px;align-items:center}
+.loyal{background:linear-gradient(135deg,var(--ink),var(--choc));color:#fff;border-radius:32px;padding:48px;display:grid;grid-template-columns:1.1fr .9fr;gap:36px;align-items:center}
 .loyal h2{font-size:clamp(22px,3vw,32px);margin-bottom:12px}
-.loyal p{color:#c9d4de;margin-bottom:20px}
+.loyal p{color:#e8d9c8;margin-bottom:20px}
 .loyal ul{list-style:none;margin:0 0 24px;display:grid;gap:10px;font-weight:600}
-.loyal li::before{content:"🩵 "}
+.loyal li::before{content:" "}
 .qrbox{background:#fff;border-radius:24px;padding:20px;text-align:center;color:var(--ink)}
 .qrbox img{width:220px;height:220px;border-radius:12px}
 .qrbox small{display:block;margin-top:10px;color:var(--mut);font-weight:600}
 .contact{display:grid;grid-template-columns:1fr 1fr;gap:26px}
-.cinfo{background:#fff;border-radius:var(--r);padding:32px;border:1px solid #eceff3}
+.cinfo{background:#fff;border-radius:var(--r);padding:32px;border:1px solid #f0e2d0}
 .cinfo .row{display:flex;gap:14px;margin-bottom:18px;font-size:17px}
 .cinfo .row b{font-size:22px}
 .links{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
 .map{border-radius:var(--r);overflow:hidden;min-height:340px}
 .map iframe{width:100%;height:100%;min-height:340px;border:0;display:block}
-footer{background:var(--ink);color:#9aa4ae;padding:28px 0;font-size:14px}
+footer{background:var(--ink);color:#c9b39e;padding:28px 0;font-size:14px}
 .foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.foot a{color:var(--sky);font-weight:700;text-decoration:none}
+.foot a{color:var(--sun2);font-weight:700;text-decoration:none}
 .rv{opacity:0;transform:translateY(24px);transition:.7s}.rv.on{opacity:1;transform:none}
+.fab{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:60;display:none;align-items:center;gap:8px;padding:14px 24px;border-radius:99px;background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;font-weight:800;box-shadow:0 10px 30px rgba(255,122,0,.45);text-decoration:none;font-size:15px}
 @media(max-width:860px){
   .hero,.loyal,.contact{grid-template-columns:1fr}
   .menu{display:flex; gap:16px; font-size:14px; font-weight:600; overflow-x:auto; white-space:nowrap; padding-bottom:4px;}
@@ -100,33 +125,37 @@ footer{background:var(--ink);color:#9aa4ae;padding:28px 0;font-size:14px}
   .logo b{font-size:16px}
   .logo img{height:38px;width:38px}
   .loyal{padding:32px 24px;}
+  .fab{display:inline-flex}
 }
 </style>
 </head>
 <body>
 <header><div class="wrap nav">
   <a class="logo" href="#"><img src="/assets/logo.png" alt="Логотип кофейни Утро" onerror="this.style.display='none'"><span><b>УТРО</b><small>кофе с собой</small></span></a>
-  <nav class="menu"><a href="#menu" data-tab="hot">Меню</a><a href="#reviews">Отзывы</a><a href="#loyal">Карта гостя</a><a href="#contacts">Контакты</a></nav>
-  <a class="btn btn-blue" href="https://max.ru/id362903188360_bot" target="_blank" rel="noopener noreferrer">MAX-бот</a>
+  <nav class="menu"><a href="#menu">Меню</a><a href="#atmo">Атмосфера</a><a href="#reviews">Отзывы</a><a href="#loyal">Карта гостя</a><a href="#contacts">Контакты</a></nav>
+  <a class="btn btn-sun" href="https://max.ru/id362903188360_bot" target="_blank" rel="noopener noreferrer">MAX-бот</a>
 </div></header>
 
 <div class="wrap hero">
   <div>
-    <span class="badge">⭐ 4.9 Яндекс · 5.0 2ГИС · Воронеж</span>
+    <div class="badges">
+      <span class="badge">⭐ 4.9 Яндекс · 5.0 2ГИС</span>
+      <span class="status open" id="status">⏰ Считаем часы…</span>
+    </div>
     <h1>Мы открываем <em>солнце</em> по кусочкам</h1>
     <p>Кофе с собой на Ленинском проспекте, 16. Каждое утро с 7:00 — авторский кофе, лимонады и десерты, которые делают день.</p>
     <div class="cta">
-      <a class="btn btn-blue" href="https://max.ru/id362903188360_bot" target="_blank" rel="noopener noreferrer">🩵 Карта гостя</a>
+      <a class="btn btn-sun" href="https://max.ru/id362903188360_bot" target="_blank" rel="noopener noreferrer">🧡 Карта гостя</a>
       <a class="btn btn-ghost" href="#menu">☕ Меню</a>
       <a class="btn btn-ghost" href="https://yandex.ru/maps/?rtext=~51.63805,39.23522&rtt=auto" target="_blank" rel="noopener noreferrer">🧭 Маршрут</a>
     </div>
   </div>
-  <div class="hero-img"><img src="/assets/hero.png" alt="Кофе с собой «Утро»"></div>
+  <div class="hero-img"><div class="hero-ph">☕</div><img src="/assets/hero.png" alt="Кофе с собой «Утро»" onerror="this.style.display='none'"></div>
 </div>
 
 <div class="tick"><div>
-  <span>☕ авторский кофе</span><span> лимонады 190 ₽</span><span>📍 Ленинский пр-т, 16</span><span>⏰ 7:00–18:00</span><span>🍰 десерты</span><span>🩵 кешбэк до 10%</span><span>📚 буккроссинг</span>
-  <span>☕ авторский кофе</span><span>🍹 лимонады 190 ₽</span><span>📍 Ленинский пр-т, 16</span><span>⏰ 7:00–18:00</span><span>🍰 десерты</span><span>🩵 кешбэк до 10%</span><span>📚 буккроссинг</span>
+  <span>☕ авторский кофе</span><span>🍹 лимонады 190 ₽</span><span>📍 Ленинский пр-т, 16</span><span>⏰ 7:00–18:00</span><span>🍰 десерты</span><span>🧡 кешбэк до 10%</span><span>📚 буккроссинг</span><span>✍️ пожелания на стаканчиках</span>
+  <span>☕ авторский кофе</span><span>🍹 лимонады 190 ₽</span><span>📍 Ленинский пр-т, 16</span><span>⏰ 7:00–18:00</span><span>🍰 десерты</span><span>🧡 кешбэк до 10%</span><span>📚 буккроссинг</span><span>✍️ пожелания на стаканчиках</span>
 </div></div>
 
 <section id="menu" class="rv"><div class="wrap">
@@ -143,11 +172,11 @@ footer{background:var(--ink);color:#9aa4ae;padding:28px 0;font-size:14px}
     <div class="item"><h3>Эспрессо-тоник</h3><p>250 — 120 ₽ · 350 — 200 ₽</p></div>
     <div class="item"><h3>Американо</h3><p>250 — 160 ₽ · 350 — 260 ₽</p></div>
     <div class="item"><h3>Флэт-уайт</h3><p>250 — 140 ₽ · 350 — 220 ₽ · 450 — 260 ₽</p></div>
-    <div class="item"><h3>Капучино</h3><p>350 — 220 ₽ · 450 — 260 ₽</p></div>
-    <div class="item"><h3>Латте</h3><p>350 — 250 ₽ · 450 — 300 ₽</p></div>
+    <div class="item"><h3>Капучино<span class="hit">🔥 Хит</span></h3><p>350 — 220 ₽ · 450 — 260 ₽</p></div>
+    <div class="item"><h3>Латте<span class="hit">🔥 Хит</span></h3><p>350 — 250 ₽ · 450 — 300 ₽</p></div>
     <div class="item"><h3>Бамбл</h3><p>250 — 140 ₽ · 350 — 220 ₽ · 450 — 260 ₽</p></div>
     <div class="item"><h3>Матча-латте</h3><p>350 — 260 ₽ · 450 — 320 ₽</p></div>
-    <div class="item"><h3>Раф ванильный</h3><p>350 — 260 ₽ · 450 — 320 ₽</p></div>
+    <div class="item"><h3>Раф ванильный<span class="hit">🔥 Хит</span></h3><p>350 — 260 ₽ · 450 — 320 ₽</p></div>
     <div class="item"><h3>Раф с сиропом</h3><p>350 — 260 ₽ · 450 — 320 ₽</p></div>
     <div class="item"><h3>Какао</h3><p>250 — 140 ₽ · 350 — 230 ₽ · 450 — 300 ₽</p></div>
     <div class="item"><h3>Шоколад</h3><p>250 — 180 ₽ · 350 — 250 ₽ · 450 — 300 ₽</p></div>
@@ -169,7 +198,7 @@ footer{background:var(--ink);color:#9aa4ae;padding:28px 0;font-size:14px}
     <div class="item"><h3>Клубничный сад</h3><p>Нежность с характером</p></div>
     <div class="item"><h3>Клубничный мохито</h3><p>Ягода и мята</p></div>
     <div class="item"><h3>Клубничный лимон</h3><p>Кисло-сладкая справедливость</p></div>
-    <div class="item"><h3>Голубая лагуна</h3><p>Цвет воды на Мальдивах</p></div>
+    <div class="item"><h3>Голубая лагуна<span class="hit">🔥 Хит</span></h3><p>Цвет воды на Мальдивах</p></div>
     <div class="item"><h3>Фиолетовый бриз</h3><p>Сиреневый закат</p></div>
     <div class="item"><h3>Кюрасао санрайз</h3><p>Искусство. Не перемешивать!</p></div>
   </div></div>
@@ -189,14 +218,24 @@ footer{background:var(--ink);color:#9aa4ae;padding:28px 0;font-size:14px}
   <div class="pane" id="dessert"><div class="grid">
     <div class="item"><h3>Капкейк белый</h3><p>Карамель и ванильный бисквит</p><span class="price">250 ₽</span></div>
     <div class="item"><h3>Капкейк голубой</h3><p>Ежевика и шоколад</p><span class="price">250 ₽</span></div>
+    <div class="item"><h3>Трайфл «Карамель-шоколад»<span class="hit">🔥 Хит</span></h3><p>Хит!</p><span class="price">300 ₽</span></div>
     <div class="item"><h3>Трайфл нежно-розовый</h3><p>Малина</p><span class="price">300 ₽</span></div>
     <div class="item"><h3>Трайфл розовый</h3><p>Клубника и малина</p><span class="price">300 ₽</span></div>
     <div class="item"><h3>Трайфл фиолетовый</h3><p>Ежевика</p><span class="price">300 ₽</span></div>
-    <div class="item"><h3>Трайфл «Карамель-шоколад»</h3><p>Хит!</p><span class="price">300 ₽</span></div>
     <div class="item"><h3>Арахисовая халва</h3><p>270 ₽</p><span class="price">270 ₽</span></div>
     <div class="item"><h3>Печенье с предсказанием</h3><p>Маленькое чудо</p><span class="price">30 ₽</span></div>
-    <div class="item"><h3>Монпансье</h3><p>Вкус из детства — для прогулок с питомцем</p></div>
+    <div class="item soon"><h3>Скоро: моти 🍡</h3><p>Японское нежное удовольствие — уже готовим</p></div>
   </div></div>
+</div></section>
+
+<section id="atmo" class="rv" style="padding-top:0"><div class="wrap">
+  <h2 class="h2">Атмосфера</h2><p class="sub">Немного нашего тепла — фото появятся совсем скоро</p>
+  <div class="grid">
+    <div class="ph-card"><img src="/assets/atmo1.png" alt="Пожелания на стаканчиках" onload="this.parentNode.classList.add('hasimg')" onerror="this.style.display='none'"><div class="ph-fallback"><span>✍️</span>Пожелания на стаканчиках</div></div>
+    <div class="ph-card"><img src="/assets/atmo2.png" alt="Буккроссинг — полка книг" onload="this.parentNode.classList.add('hasimg')" onerror="this.style.display='none'"><div class="ph-fallback"><span>📚</span>Буккроссинг: возьми книгу</div></div>
+    <div class="ph-card"><img src="/assets/atmo3.png" alt="Фотостена" onload="this.parentNode.classList.add('hasimg')" onerror="this.style.display='none'"><div class="ph-fallback"><span>📸</span>Фотостена для твоих сторис</div></div>
+    <div class="ph-card"><img src="/assets/atmo4.png" alt="Наш кофе" onload="this.parentNode.classList.add('hasimg')" onerror="this.style.display='none'"><div class="ph-fallback"><span>☕</span>Тот самый кофе</div></div>
+  </div>
 </div></section>
 
 <section id="loyal" class="rv"><div class="wrap">
@@ -205,15 +244,14 @@ footer{background:var(--ink);color:#9aa4ae;padding:28px 0;font-size:14px}
       <h2>Карта гостя в MAX — кешбэк до 10%</h2>
       <p>Отсканируйте QR или откройте бота — и получайте бонусы за каждый кофе.</p>
       <ul><li>100 баллов при регистрации</li><li>Кешбэк 3–10% с каждого чека</li><li>Подарок в день рождения</li></ul>
-      <a class="btn btn-blue" href="https://max.ru/id362903188360_bot" target="_blank" rel="noopener noreferrer">Открыть бота в MAX</a>
-      
-      <div style="margin-top:32px; padding-top:24px; border-top:1px solid rgba(255,255,255,0.1);">
+      <a class="btn btn-sun" href="https://max.ru/id362903188360_bot" target="_blank" rel="noopener noreferrer">Открыть бота в MAX</a>
+      <div style="margin-top:32px; padding-top:24px; border-top:1px solid rgba(255,255,255,0.15);">
         <h3 style="color:#fff;margin-bottom:12px;font-size:18px;">🔍 Проверить мою карту</h3>
-        <p style="color:#c9d4de;margin-bottom:16px;font-size:15px;">Введите последние 4 цифры номера телефона</p>
+        <p style="color:#e8d9c8;margin-bottom:16px;font-size:15px;">Введите последние 4 цифры номера телефона</p>
         <form id="phone-form" style="display:flex;gap:10px;flex-wrap:wrap;">
-          <input id="phone-input" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="4 цифры" 
-                 style="flex:1;min-width:150px;padding:14px 18px;border-radius:14px;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;font-size:16px;font-weight:600;">
-          <button type="submit" style="padding:14px 28px;border-radius:14px;background:var(--blue);color:#fff;border:none;font-weight:800;cursor:pointer;font-size:15px;box-shadow:0 8px 20px rgba(27,135,201,.35);">
+          <input id="phone-input" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="4 цифры"
+                 style="flex:1;min-width:150px;padding:14px 18px;border-radius:14px;border:2px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.08);color:#fff;font-size:16px;font-weight:600;">
+          <button type="submit" style="padding:14px 28px;border-radius:14px;background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;border:none;font-weight:800;cursor:pointer;font-size:15px;box-shadow:0 8px 20px rgba(255,122,0,.35);">
             Узнать баланс
           </button>
         </form>
@@ -226,26 +264,30 @@ footer{background:var(--ink);color:#9aa4ae;padding:28px 0;font-size:14px}
 
 <section id="reviews" class="rv" style="padding-top:0"><div class="wrap">
   <h2 class="h2">Отзывы гостей</h2><p class="sub">Листайте карусель — нажмите, чтобы открыть отзыв</p>
-  <div class="car">
-    <a class="item" href="https://2gis.ru/voronezh/firm/70000001101448488" target="_blank" rel="noopener noreferrer">
-      <div class="top"><span class="ava" style="background:#1B87C9">К</span><div><b>Ксения М.</b><div class="stars">★★★★★</div></div></div>
-      <p>«Самый вкусный и тёплый кофе, персонал вежливый — расскажут и помогут с выбором!»</p>
-      <img class="rphoto" src="/assets/review1.png" alt="Скриншот отзыва Ксении М. на 2ГИС">
-      <div class="who">2ГИС <span>читать отзыв ↗</span></div></a>
-    <a class="item" href="https://yandex.ru/maps/org/utro/160346229988/?tab=reviews" target="_blank" rel="noopener noreferrer">
-      <div class="top"><span class="ava" style="background:#0E6BA8">Ю</span><div><b>Юлия</b><div class="stars">★★★★★</div></div></div>
-      <p>«Спасибо за очень вкусный кофе — буду вас ждать!»</p>
-      <img class="rphoto" src="/assets/review2.png" alt="Скриншот отзыва Юлии на Яндекс Картах">
-      <div class="who">Яндекс Карты <span>читать отзыв ↗</span></div></a>
-    <a class="item" href="https://yandex.ru/maps/org/utro/160346229988/?tab=reviews" target="_blank" rel="noopener noreferrer">
-      <div class="top"><span class="ava" style="background:#7EC8E3">О</span><div><b>Оксана</b><div class="stars">★★★★★</div></div></div>
-      <p>«Спасибо, что сделали наш день! Прекрасное отношение и вкуснейший кофе!»</p>
-      <img class="rphoto" src="/assets/review3.png" alt="Скриншот отзыва Оксаны на Яндекс Картах">
-      <div class="who">Яндекс Карты <span>читать отзыв ↗</span></div></a>
-    <a class="item" href="https://2gis.ru/voronezh/firm/70000001101448488" target="_blank" rel="noopener noreferrer">
-      <div class="top"><span class="ava" style="background:#F5A623">Г</span><div><b>Гость</b><div class="stars">★★★★★</div></div></div>
-      <p>«Вы посмотрите на эту милоту — хорошее настроение вам обеспечено!»</p>
-      <div class="who">2ГИС <span>читать отзыв ↗</span></div></a>
+  <div class="carwrap">
+    <button class="car-btn l" id="carL" aria-label="Предыдущие отзывы">←</button>
+    <button class="car-btn r" id="carR" aria-label="Следующие отзывы">→</button>
+    <div class="car" id="car">
+      <a class="item" href="https://2gis.ru/voronezh/firm/70000001101448488" target="_blank" rel="noopener noreferrer">
+        <div class="top"><span class="ava" style="background:#FF7A00">К</span><div><b>Ксения М.</b><div class="stars">★★★★★</div></div></div>
+        <p>«Самый вкусный и тёплый кофе, персонал вежливый — расскажут и помогут с выбором!»</p>
+        <img class="rphoto" src="/assets/review1.png" alt="Отзыв Ксении М. на 2ГИС" onerror="this.style.display='none'">
+        <div class="who">2ГИС <span>читать отзыв ↗</span></div></a>
+      <a class="item" href="https://yandex.ru/maps/org/utro/160346229988/?tab=reviews" target="_blank" rel="noopener noreferrer">
+        <div class="top"><span class="ava" style="background:#C2540A">Ю</span><div><b>Юлия</b><div class="stars">★★★★★</div></div></div>
+        <p>«Спасибо за очень вкусный кофе — буду вас ждать!»</p>
+        <img class="rphoto" src="/assets/review2.png" alt="Отзыв Юлии на Яндекс Картах" onerror="this.style.display='none'">
+        <div class="who">Яндекс Карты <span>читать отзыв ↗</span></div></a>
+      <a class="item" href="https://yandex.ru/maps/org/utro/160346229988/?tab=reviews" target="_blank" rel="noopener noreferrer">
+        <div class="top"><span class="ava" style="background:#F5A623">О</span><div><b>Оксана</b><div class="stars">★★★★★</div></div></div>
+        <p>«Спасибо, что сделали наш день! Прекрасное отношение и вкуснейший кофе!»</p>
+        <img class="rphoto" src="/assets/review3.png" alt="Отзыв Оксаны на Яндекс Картах" onerror="this.style.display='none'">
+        <div class="who">Яндекс Карты <span>читать отзыв ↗</span></div></a>
+      <a class="item" href="https://2gis.ru/voronezh/firm/70000001101448488" target="_blank" rel="noopener noreferrer">
+        <div class="top"><span class="ava" style="background:#4A2E1D">Г</span><div><b>Гость</b><div class="stars">★★★★★</div></div></div>
+        <p>«Вы посмотрите на эту милоту — хорошее настроение вам обеспечено!»</p>
+        <div class="who">2ГИС <span>читать отзыв ↗</span></div></a>
+    </div>
   </div>
 </div></section>
 
@@ -257,7 +299,7 @@ footer{background:var(--ink);color:#9aa4ae;padding:28px 0;font-size:14px}
       <div class="row"><b>⏰</b><div>Ежедневно с 7:00 до 18:00</div></div>
       <div class="row"><b>📞</b><div><a href="tel:+79525503920" style="color:inherit;text-decoration:none;font-weight:800">+7 (952) 550-39-20</a></div></div>
       <div class="links">
-        <a class="btn btn-blue" href="https://yandex.ru/maps/?rtext=~51.63805,39.23522&rtt=auto" target="_blank" rel="noopener noreferrer">🧭 Маршрут</a>
+        <a class="btn btn-sun" href="https://yandex.ru/maps/?rtext=~51.63805,39.23522&rtt=auto" target="_blank" rel="noopener noreferrer">🧭 Маршрут</a>
         <a class="btn btn-ghost" href="tel:+79525503920">Позвонить</a>
         <a class="btn btn-ghost" href="https://vk.ru/utronalevom" target="_blank" rel="noopener noreferrer">VK</a>
         <a class="btn btn-ghost" href="https://2gis.ru/voronezh/firm/70000001101448488" target="_blank" rel="noopener noreferrer">2ГИС</a>
@@ -272,100 +314,72 @@ footer{background:var(--ink);color:#9aa4ae;padding:28px 0;font-size:14px}
   <div><a href="https://vk.ru/utronalevom" target="_blank" rel="noopener noreferrer">ВКонтакте</a> · <a href="https://2gis.ru/voronezh/firm/70000001101448488" target="_blank" rel="noopener noreferrer">2ГИС</a> · <a href="https://max.ru/id362903188360_bot" target="_blank" rel="noopener noreferrer">MAX</a></div>
 </div></footer>
 
+<a class="fab" href="https://max.ru/id362903188360_bot" target="_blank" rel="noopener noreferrer">🧡 Открыть в MAX</a>
+
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script>
 var qr=qrcode(0,'M'); qr.addData('https://max.ru/id362903188360_bot'); qr.make();
 document.getElementById('qr').innerHTML=qr.createImgTag(5,10);
 
-// Табы с сохранением в URL (location.hash)
+// Живой статус Открыто/Закрыто
+function updStatus(){
+  var n=new Date(), h=n.getHours()+n.getMinutes()/60;
+  var open=h>=7&&h<18;
+  var el=document.getElementById('status');
+  el.textContent=open?'Открыто сейчас · до 18:00':'Закрыто · откроемся в 7:00';
+  el.className='status '+(open?'open':'closed');
+}
+updStatus(); setInterval(updStatus,60000);
+
+// Табы + ссылка на вкладку
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   document.querySelectorAll('.pane').forEach(x=>x.classList.remove('on'));
   t.classList.add('on'); document.getElementById(t.dataset.t).classList.add('on');
-  history.replaceState(null, '', '#menu-' + t.dataset.t);
+  history.replaceState(null,'','#menu-'+t.dataset.t);
 });
-
-// При загрузке открываем нужный таб из URL
 (function(){
-  const hash = location.hash.replace('#menu-', '');
-  if (hash) {
-    const tab = document.querySelector(`.tab[data-t="${hash}"]`);
-    if (tab) tab.click();
-  }
+  var hash=location.hash.replace('#menu-','');
+  if(hash){var tab=document.querySelector('.tab[data-t="'+hash+'"]'); if(tab) tab.click();}
 })();
 
+// Стрелки карусели
+document.getElementById('carL').onclick=()=>document.getElementById('car').scrollBy({left:-320,behavior:'smooth'});
+document.getElementById('carR').onclick=()=>document.getElementById('car').scrollBy({left:320,behavior:'smooth'});
+
+// Плавное появление секций
 const io=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.classList.add('on')),{threshold:.15});
 document.querySelectorAll('.rv').forEach(el=>io.observe(el));
 
-// Фильтр ввода: только цифры
-document.getElementById('phone-input').addEventListener('input', function(e) {
-  this.value = this.value.replace(/\D/g, '').slice(0, 4);
-});
+// Форма проверки карты
+document.getElementById('phone-input').addEventListener('input',function(){this.value=this.value.replace(/\D/g,'').slice(0,4);});
+document.getElementById('phone-form').addEventListener('submit',function(e){e.preventDefault();checkCard();});
 
-// Обработчик формы с Enter
-document.getElementById('phone-form').addEventListener('submit', function(e) {
-  e.preventDefault();
-  checkCard();
-});
-
-async function checkCard() {
-  const input = document.getElementById('phone-input');
-  const resultBox = document.getElementById('card-result');
-  const phone = input.value.trim();
-  
-  if (phone.length < 4) {
-    resultBox.innerHTML = '<div style="color:#ff6b6b;font-weight:600;">Введите 4 цифры</div>';
-    return;
-  }
-  
-  resultBox.innerHTML = '<div style="color:#fff;">⏳ Ищем...</div>';
-  
-  try {
-    const res = await fetch(`/api/card?phone=${phone}`, {
-      headers: {'X-Api-Key': 'utro_coffee_2024_secret_key_7a9b3c'}
-    });
-    
-    if (res.status === 403) {
-      resultBox.innerHTML = '<div style="color:#ff6b6b;">Ошибка доступа</div>';
-      return;
+async function checkCard(){
+  const input=document.getElementById('phone-input');
+  const resultBox=document.getElementById('card-result');
+  const phone=input.value.trim();
+  if(phone.length<4){resultBox.innerHTML='<div style="color:#FFB4A8;font-weight:600;">Введите 4 цифры</div>';return;}
+  resultBox.innerHTML='<div style="color:#fff;">⏳ Ищем…</div>';
+  try{
+    const res=await fetch('/api/card?phone='+phone,{headers:{'X-Api-Key':'utro_coffee_2024_secret_key_7a9b3c'}});
+    if(res.status===403){resultBox.innerHTML='<div style="color:#FFB4A8;">Ошибка доступа</div>';return;}
+    const data=await res.json();
+    if(data.ok){
+      resultBox.innerHTML='<div style="background:rgba(255,255,255,0.12);border-radius:16px;padding:20px;border:1px solid rgba(255,255,255,0.15);">'
+        +'<div style="font-weight:800;font-size:17px;margin-bottom:12px;color:#fff;">💳 Ваша карта найдена!</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'
+        +'<div><div style="color:#c9b39e;font-size:13px;">Баллы</div><div style="color:#fff;font-weight:800;font-size:22px;">'+data.points+' ⭐</div></div>'
+        +'<div><div style="color:#c9b39e;font-size:13px;">Уровень</div><div style="color:#fff;font-weight:800;font-size:16px;">'+data.level+'</div></div>'
+        +'<div><div style="color:#c9b39e;font-size:13px;">Кешбэк</div><div style="color:#FFB25E;font-weight:800;font-size:18px;">'+data.pct+'%</div></div>'
+        +'<div><div style="color:#c9b39e;font-size:13px;">Визитов</div><div style="color:#fff;font-weight:800;font-size:18px;">'+data.visits+' ☕</div></div>'
+        +'</div></div>';
+    }else{
+      resultBox.innerHTML='<div style="background:rgba(255,107,107,0.12);border:1px solid rgba(255,107,107,0.35);border-radius:16px;padding:20px;color:#fff;">'
+        +'<div style="font-weight:800;margin-bottom:8px;">😕 Карта не найдена</div>'
+        +'<div style="color:#e8d9c8;font-size:14px;">Возможно, вы регистрировались на другой номер. <a href="https://max.ru/id362903188360_bot" target="_blank" rel="noopener noreferrer" style="color:#FFB25E;">Откройте бота</a>, чтобы получить карту!</div></div>';
     }
-    
-    const data = await res.json();
-    if (data.ok) {
-      resultBox.innerHTML = `
-        <div style="background:rgba(255,255,255,0.1);backdrop-filter:blur(10px);border-radius:16px;padding:20px;border:1px solid rgba(255,255,255,0.1);">
-          <div style="font-weight:800;font-size:17px;margin-bottom:12px;color:#fff;">💳 Ваша карта найдена!</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-            <div>
-              <div style="color:#9aa4ae;font-size:13px;">Баллы</div>
-              <div style="color:#fff;font-weight:800;font-size:22px;">${data.points} <span style="color:#F5A623;">⭐</span></div>
-            </div>
-            <div>
-              <div style="color:#9aa4ae;font-size:13px;">Уровень</div>
-              <div style="color:#fff;font-weight:800;font-size:16px;">${data.level}</div>
-            </div>
-            <div>
-              <div style="color:#9aa4ae;font-size:13px;">Кешбэк</div>
-              <div style="color:#7EC8E3;font-weight:800;font-size:18px;">${data.pct}%</div>
-            </div>
-            <div>
-              <div style="color:#9aa4ae;font-size:13px;">Визитов</div>
-              <div style="color:#fff;font-weight:800;font-size:18px;">${data.visits} ☕</div>
-            </div>
-          </div>
-        </div>
-      `;
-    } else {
-      resultBox.innerHTML = `
-        <div style="background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.3);border-radius:16px;padding:20px;color:#fff;">
-          <div style="font-weight:800;margin-bottom:8px;">😕 Карта не найдена</div>
-          <div style="color:#c9d4de;font-size:14px;">Возможно, вы регистрировались на другой номер. <a href="https://max.ru/id362903188360_bot" target="_blank" rel="noopener noreferrer" style="color:#7EC8E3;text-decoration:underline;">Откройте бота</a>, чтобы получить новую карту!</div>
-        </div>
-      `;
-    }
-  } catch (e) {
-    resultBox.innerHTML = '<div style="color:#ff6b6b;">Ошибка соединения с сервером</div>';
-  }
+  }catch(e){resultBox.innerHTML='<div style="color:#FFB4A8;">Ошибка соединения с сервером</div>';}
 }
 </script>
 </body>
