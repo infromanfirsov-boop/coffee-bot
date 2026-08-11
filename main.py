@@ -399,7 +399,7 @@ def menu(uid,name):
        f"{lvl_name(v)} · кешбэк {pct(v)}%\n{CHART} {progress_bar(v)}\n\nВыберите раздел:")
     b=[[cb(CARD+" Карта","show_card"),cb(STAR+" Баланс","show_balance")],[cb(HIST+" История","show_history"),cb(HELP+" Помощь","show_help")]]
     if not is_priv(uid):
-        b+=[[cb(MEDAL+" Награды","show_badges"),cb(HAND+" Пригласить","show_refer")],[cb(CARD+" QR-карта","show_qr"),cb(STAR+" Отзыв","show_review")]]
+        b+=[[cb(MEDAL+" Награды","show_badges"),cb(HAND+" Пригласить","show_refer")],[cb(STAR+" Отзыв","show_review")]]
     if is_priv(uid):
         b+=[[cb(RECEIPT+" Чек","checkflow")],[cb(SEARCH+" Поиск","show_search"),cb(USERS+" Клиенты","show_clients")]]
         if uid in ADMINS: b+=[[cb(CHART2+" Топ","show_top"),cb(CHART2+" ABC","show_abc"),cb(CHART2+" RFM","show_rfm")],[cb(BULB+" Инсайты","show_insights"),cb(EXPORT+" CSV","export_csv"),cb(EXPORT+" Файлы","export_files")],[cb(MEGA+" Рассылка","show_broadcast"),cb(TOOLS+" Статус","show_status")]]
