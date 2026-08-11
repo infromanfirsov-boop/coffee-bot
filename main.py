@@ -1146,6 +1146,8 @@ def handle_message(uid, text, name, payload="", photo=None):
         with db() as c:
             c.execute("UPDATE users SET full_name=?,name_lc=? WHERE max_user_id=? AND (full_name IS NULL OR full_name='')",
                       (name, (name or "").lower(), uid))
+    if not is_priv(uid) and not payload.startswith("ref_") and cmd not in ("/start", "/help") and not user_exists(uid):
+        return menu(uid, name)
     if payload == "show_card": return card(ensure_user(uid, name, WELCOME if not is_priv(uid) else 0))
     if payload.startswith("ref_"):
         if not user_exists(uid): ensure_user(uid, name, WELCOME)
@@ -1310,6 +1312,14 @@ def handle_message(uid, text, name, payload="", photo=None):
     if cmd.startswith("/ref"): return do_refer(uid, p[1] if len(p) > 1 else "")
     if cmd.startswith("/review"): return review_screen(u)
     if cmd.startswith("/promo"): return promo_redeem(uid, p[1] if len(p) > 1 else "")
+    if not u["phone"]:
+        d = norm_phone(t)
+        if d:
+            with db() as c:
+                if c.execute("SELECT 1 FROM users WHERE phone=? AND max_user_id!=?", (d, uid)).fetchone():
+                    return rep(f"{WARN} Номер уже привязан к другой карте.", back())
+                c.execute("UPDATE users SET phone=? WHERE max_user_id=?", (d, uid))
+            return rep(f"{PHONE} Сохранено: {d}", back())
     hint = f"{THINK} Не понял. /help - команды."
     if is_priv(uid):
         hint = f"{TOOLS} Персонал:\n{RECEIPT} Чек · {SEARCH} Поиск\n/find 7999 · /top · /abc · /rfm · /status"
@@ -1319,7 +1329,10 @@ def handle_message(uid, text, name, payload="", photo=None):
 
 def handle_callback(uid, payload, name):
     uid = str(uid)
+    new = not user_exists(uid)
     u = ensure_user(uid, name)
+    if new and not is_priv(uid):
+        return menu(uid, name)
     PRIV = ("cashflow", "payflow", "show_search", "show_top", "show_abc", "show_rfm", "show_status", "checkflow")
     if payload in PRIV or payload.startswith(("add_", "sub_", "input_", "cash_", "pay_", "sp:", "deduct_", "rcc_", "rcp_", "qa_", "sel_", "buy_", "ck_", "chk_", "ckd_", "ckn_")):
         if not is_priv(uid): return rep(f"{NO} Только персонал.", back())
