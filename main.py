@@ -87,6 +87,8 @@ WINBACK_DAYS = _env_int("WINBACK_DAYS", "14")
 WINBACK_BONUS = _env_int("WINBACK_BONUS", "50")
 WINBACK_CD = _env_int("WINBACK_COOLDOWN_DAYS", "30")
 REVIEW_BONUS = _env_int("REVIEW_BONUS", "50")
+BOOK_BONUS = _env_int("BOOK_BONUS", "20")
+ADMIN_PASS = os.getenv("ADMIN_PASSWORD", "utro_admin_2024")
 BACKUP_DIR = os.getenv("BACKUP_DIR", "backups")
 BACKUP_KEEP = _env_int("BACKUP_KEEP", "7")
 SITE_API_KEY = os.getenv("SITE_API_KEY", "utro_coffee_2024_secret_key_7a9b3c")
@@ -733,7 +735,8 @@ def help_screen(u):
          f"{HOUR} Баллы действуют {EXPIRE_DAYS} дней\n"
          f"{CAKE} В день рождения дарим {BDAY_BONUS} баллов (сгорят через {BDAY_DAYS} дн.)\n"
          f"{HAND} Приведи друга - получи {REF_BONUS} баллов\n"
-         f"{STAR} Отзыв с фото - {REVIEW_BONUS} баллов после проверки\n\n"
+         f"{STAR} Отзыв с фото - {REVIEW_BONUS} баллов после проверки\n"
+         f"📚 Принеси книгу на полку - {BOOK_BONUS} баллов\n\n"
          f"{CHART} Уровни:\n")
     for n, nm, p in LEVELS:
         t += f"{nm} - {p}%" + (f" (от {n} визитов)" if n else "") + "\n"
@@ -1015,7 +1018,7 @@ def admin_card(u):
          [cb(MINUS + "50", f"sub_50_{u['card_number']}"), cb(MINUS + "100", f"sub_100_{u['card_number']}"), cb(MINUS + "200", f"sub_200_{u['card_number']}")],
          [cb(RECEIPT + " Чек", f"chk_{u['card_number']}"), cb(BAG + " Покупки", f"buy_{u['card_number']}")],
          [cb(PHONE + " Телефон", f"phq_{u['card_number']}"), cb(EDIT + " Имя", f"nmq_{u['card_number']}")],
-         [cb("🗑 Удалить", f"delq_{u['card_number']}")]] + back()
+         [cb("📚 Книга", f"book_{u['card_number']}"), cb("🗑 Удалить", f"delq_{u['card_number']}")]] + back()
     return rep(txt, b)
 
 def apply_delta(uid, delta, target, comment=""):
@@ -1334,7 +1337,7 @@ def handle_callback(uid, payload, name):
     if new and not is_priv(uid):
         return menu(uid, name)
     PRIV = ("cashflow", "payflow", "show_search", "show_top", "show_abc", "show_rfm", "show_status", "checkflow")
-    if payload in PRIV or payload.startswith(("add_", "sub_", "input_", "cash_", "pay_", "sp:", "deduct_", "rcc_", "rcp_", "qa_", "sel_", "buy_", "ck_", "chk_", "ckd_", "ckn_")):
+    if payload in PRIV or payload.startswith(("add_", "sub_", "input_", "cash_", "pay_", "sp:", "deduct_", "rcc_", "rcp_", "qa_", "sel_", "buy_", "ck_", "chk_", "ckd_", "ckn_", "book_")):
         if not is_priv(uid): return rep(f"{NO} Только персонал.", back())
     if payload in ("show_clients", "export_csv", "export_files", "show_insights", "show_broadcast") or payload.startswith(("cp:", "review_ok_", "review_no_", "phq_", "delq_", "delyes_", "nmq_")):
         if uid not in ADMINS: return rep(f"{NO} Только админ.", back())
@@ -1472,6 +1475,14 @@ def handle_callback(uid, payload, name):
             c.execute("DELETE FROM users WHERE id=?", (i,))
         BAL.drop(i)
         return rep(f"{OK} Клиент удалён из базы.", back())
+    if payload.startswith("book_"):
+        target = find_user(payload[5:])
+        if not target: return rep(f"{WARN} Не найден.", back())
+        with db() as c:
+            _batch(c, target["id"], BOOK_BONUS, "book", "📚 Книга в буккроссинг")
+            c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
+                      (target["id"], "accrual", BOOK_BONUS, "📚 Книга в буккроссинг"))
+        return rep(f"{OK} +{BOOK_BONUS} баллов за книгу!\nНовый баланс: {STAR} {balance(target['id'])}", back())
     if payload.startswith("add_") or payload.startswith("sub_"):
         parts = payload.split("_", 2)
         target = find_user(parts[2])
