@@ -22,7 +22,7 @@ except ImportError:
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 
-load_dotenv(os.path.join(BASE, ".env"), override=True)
+load_dotenv(os.path.join(BASE, ".env"), override=False)
 os.environ["TZ"] = "Europe/Moscow"
 try:
     time.tzset()
