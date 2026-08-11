@@ -97,6 +97,14 @@ section{padding:64px 0}
 .who{font-weight:800;margin-top:12px;font-size:13px;color:var(--mut);display:flex;justify-content:space-between}
 .who span{color:var(--sun)}
 .rphoto{width:100%;height:120px;object-fit:cover;border-radius:14px;margin-top:10px;aspect-ratio:29/12}
+.faq-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.faq{background:#fff;border:1px solid #f0e2d0;border-radius:16px;padding:16px 18px;transition:.2s}
+.faq summary{cursor:pointer;font-weight:800;font-size:15px;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:'+';font-size:20px;color:var(--sun);font-weight:800;transition:.2s}
+.faq[open] summary::after{transform:rotate(45deg)}
+.faq p{margin-top:10px;color:var(--mut);line-height:1.5;font-size:14px}
+@media(max-width:860px){.faq-grid{grid-template-columns:1fr}}
 .share-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .share-card{padding:28px}
 .share-card h3{font-size:20px;margin-bottom:8px}
@@ -312,6 +320,18 @@ footer{background:var(--ink);color:#c9b39e;padding:28px 0;font-size:14px}
       <button class="btn btn-sun" onclick="shareSite()">Поделиться</button>
       <div id="shareMsg" style="margin-top:10px;font-weight:700;color:#C2540A;"></div>
     </div>
+  </div>
+</div></section>
+<section id="faq" class="rv" style="padding-top:0"><div class="wrap">
+  <h2 class="h2">Вопросы и ответы</h2><p class="sub">Коротко о важном</p>
+  <div class="faq-grid">
+    <details class="faq"><summary>💳 Как оплатить?</summary><p>Карта, наличные или СБП — как удобно.</p></details>
+    <details class="faq"><summary>📶 Есть ли Wi-Fi?</summary><p>Да! Пароль подскажем на кассе.</p></details>
+    <details class="faq"><summary>🐶 Можно с питомцем?</summary><p>Конечно! Воспитанные хвосты — только радость.</p></details>
+    <details class="faq"><summary>🥡 Можно посидеть у вас?</summary><p>Мы — кофе с собой: готовим напитки в дорогу. А рядом буккроссинг и фотостена.</p></details>
+    <details class="faq"><summary>🚗 Где припарковаться?</summary><p>Парковка прямо напротив кофейни.</p></details>
+    <details class="faq"><summary>🌱 Есть ли растительное молоко?</summary><p>Да: растительное и безлактозное — спросите у бариста.</p></details>
+    <details class="faq"><summary>🍬 Что за монпансье?</summary><p>Те самые леденцы с разными питомцами сверху. Маленькая радость к кофе.</p></details>
   </div>
 </div></section>
 <section id="contacts" class="rv" style="padding-top:0"><div class="wrap">
