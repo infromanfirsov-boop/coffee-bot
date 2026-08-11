@@ -1117,7 +1117,12 @@ def assets(name:str):
     if os.path.isfile(p): return FileResponse(p)
     raise HTTPException(404,"Not found")
 @app.get("/api/card")
-def api_card(phone:str=""):
+def api_card(phone:str="", x_api_key: str = Header(default="")):
+    # Защита: проверяем секретный ключ из заголовка
+    site_key = os.getenv("SITE_API_KEY", "")
+    if site_key and x_api_key != site_key:
+        raise HTTPException(403, "Forbidden")
+    
     d="".join(ch for ch in phone if ch.isdigit())
     if len(d)<4: return {"ok":False}
     with db() as c:
