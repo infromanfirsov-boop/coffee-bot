@@ -1180,7 +1180,7 @@ def handle_message(uid, text, name, payload="", photo=None):
     if is_priv(uid) and p:
         op = p[0]
         if t.lower() in ("отмена", "cancel", "/cancel", "/menu"):
-        for P in (PENDING, PENDING_CASH, PENDING_ID, PENDING_PAYID, PENDING_PAY, ONBOARD, PENDING_CHECK, PENDING_SEARCH, PENDING_REVIEW, PENDING_WALK, PENDING_NEW):
+            for P in (PENDING, PENDING_CASH, PENDING_ID, PENDING_PAYID, PENDING_PAY, ONBOARD, PENDING_CHECK, PENDING_SEARCH, PENDING_REVIEW, PENDING_WALK, PENDING_NEW):
                 P.clear(uid)
             if t.lower() == "/menu": return menu(uid, name)
             return rep(f"{CROSS} Действие отменено.", back())
@@ -1463,7 +1463,7 @@ def handle_callback(uid, payload, name):
         PENDING_PAYID.set(uid, "1")
         return rep(f"{CARD} Оплата баллами\nВыберите клиента или введите телефон/карту/имя:", recent_buttons("rcp") + cancel() + back())
     if payload == "cancel_pending":
-            for P in (PENDING, PENDING_CASH, PENDING_ID, PENDING_PAYID, PENDING_PAY, PENDING_CHECK, PENDING_SEARCH, PENDING_WALK, PENDING_NEW):
+        for P in (PENDING, PENDING_CASH, PENDING_ID, PENDING_PAYID, PENDING_PAY, ONBOARD, PENDING_CHECK, PENDING_SEARCH, PENDING_REVIEW, PENDING_WALK, PENDING_NEW):
             P.clear(uid)
         return rep(f"{CROSS} Отменено.", back())
     if payload.startswith("rcc_"):
