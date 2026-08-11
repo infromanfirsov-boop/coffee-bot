@@ -1424,13 +1424,13 @@ def handle_callback(uid, payload, name):
         PENDING_PH.set(uid, cn)
         return rep(f"{PHONE} Введите телефон клиента: 79991234567", cancel() + back())
     if payload.startswith("delq_"):
-        cn = payload[4:]
+        cn = payload[5:]
         t = find_user(cn)
         if not t: return rep(f"{WARN} Не найден.", back())
         return rep(f"{WARN} Удалить {t['full_name'] or cn} безвозвратно?",
                    [[cb("🗑 Да, удалить", f"delyes_{cn}"), cb(CROSS + " Нет", "show_menu")]])
     if payload.startswith("delyes_"):
-        cn = payload[4:]
+        cn = payload[7:]
         with db() as c:
             r = c.execute("SELECT id,max_user_id,is_admin FROM users WHERE card_number=?", (cn,)).fetchone()
             if not r: return rep(f"{WARN} Не найден.", back())
