@@ -638,6 +638,7 @@ PENDING_CHECK = Pending()
 PENDING_SEARCH = Pending()
 PENDING_REVIEW = Pending()
 PENDING_PH = Pending()
+PENDING_NM = Pending()
 
 # === КНОПКИ ===
 def cb(t, p): return {"type": "callback", "text": t, "payload": p}
@@ -1013,7 +1014,8 @@ def admin_card(u):
     b = [[cb(PLUS + "50", f"add_50_{u['card_number']}"), cb(PLUS + "100", f"add_100_{u['card_number']}"), cb(PLUS + "200", f"add_200_{u['card_number']}")],
          [cb(MINUS + "50", f"sub_50_{u['card_number']}"), cb(MINUS + "100", f"sub_100_{u['card_number']}"), cb(MINUS + "200", f"sub_200_{u['card_number']}")],
          [cb(RECEIPT + " Чек", f"chk_{u['card_number']}"), cb(BAG + " Покупки", f"buy_{u['card_number']}")],
-         [cb(PHONE + " Телефон", f"phq_{u['card_number']}"), cb("🗑 Удалить", f"delq_{u['card_number']}")]] + back()
+         [cb(PHONE + " Телефон", f"phq_{u['card_number']}"), cb(EDIT + " Имя", f"nmq_{u['card_number']}")],
+         [cb("🗑 Удалить", f"delq_{u['card_number']}")]] + back()
     return rep(txt, b)
 
 def apply_delta(uid, delta, target, comment=""):
@@ -1173,6 +1175,14 @@ def handle_message(uid, text, name, payload="", photo=None):
         if PENDING_SEARCH.get(uid) and not op.startswith("/"):
             PENDING_SEARCH.clear(uid)
             return do_search(uid, t)
+        if PENDING_NM.get(uid) and not op.startswith("/"):
+            cn = PENDING_NM.get(uid)
+            nm = t.strip()
+            if len(nm) < 2: return rep(f"{EDIT} Слишком короткое имя.", cancel() + back())
+            with db() as c:
+                c.execute("UPDATE users SET full_name=?,name_lc=? WHERE card_number=?", (nm, nm.lower(), cn))
+            PENDING_NM.clear(uid)
+            return rep(f"{OK} Имя сохранено: {nm}", back())
         if PENDING_PH.get(uid) and not op.startswith("/"):
             cn = PENDING_PH.get(uid)
             d = norm_phone(op)
@@ -1313,7 +1323,7 @@ def handle_callback(uid, payload, name):
     PRIV = ("cashflow", "payflow", "show_search", "show_top", "show_abc", "show_rfm", "show_status", "checkflow")
     if payload in PRIV or payload.startswith(("add_", "sub_", "input_", "cash_", "pay_", "sp:", "deduct_", "rcc_", "rcp_", "qa_", "sel_", "buy_", "ck_", "chk_", "ckd_", "ckn_")):
         if not is_priv(uid): return rep(f"{NO} Только персонал.", back())
-    if payload in ("show_clients", "export_csv", "export_files", "show_insights", "show_broadcast") or payload.startswith(("cp:", "review_ok_", "review_no_", "phq_", "delq_", "delyes_")):
+    if payload in ("show_clients", "export_csv", "export_files", "show_insights", "show_broadcast") or payload.startswith(("cp:", "review_ok_", "review_no_", "phq_", "delq_", "delyes_", "nmq_")):
         if uid not in ADMINS: return rep(f"{NO} Только админ.", back())
     if payload == "show_menu": return menu(uid, name)
     if payload == "show_help": return help_screen(u)
@@ -1419,6 +1429,10 @@ def handle_callback(uid, payload, name):
         ok, nb = spend_points(target["id"], amount, f"{CARD} Оплата баллами")
         PENDING_PAY.clear(uid)
         return rep(f"{OK} Списано {amount}\nОстаток: {STAR} {nb}", back()) if ok else rep(f"{WARN} Не хватило баллов", back())
+    if payload.startswith("nmq_"):
+        cn = payload[4:]
+        PENDING_NM.set(uid, cn)
+        return rep(f"{EDIT} Введите имя клиента:", cancel() + back())
     if payload.startswith("phq_"):
         cn = payload[4:]
         PENDING_PH.set(uid, cn)
