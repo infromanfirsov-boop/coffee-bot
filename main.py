@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime, timedelta
 from logging.handlers import RotatingFileHandler
 
-import qrcode, requests, uvicorn
+import qrcode, requests, urllib3, uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -128,9 +128,20 @@ def progress_bar(v):
     filled = int(done / span * seg) if span > 0 else seg
     return PB_F * filled + PB_E * (seg - filled) + f" {v}/{nl[0]}"
 
-# HTTP-сессия (SSL-проверка включена)
+# HTTP-сессия (SSL-проверка с авто-fallback)
 http = requests.Session()
 H = {"Authorization": TOKEN, "Content-Type": "application/json"}
+
+def _ssl_probe():
+    try:
+        http.get(f"{API}/me", headers=H, timeout=10)
+        log.info("[ssl] сертификат OK")
+    except requests.exceptions.SSLError:
+        http.verify = False
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        log.warning("[ssl] сертификат MAX не доверен - проверка отключена (fallback)")
+    except Exception as e:
+        log.warning("[ssl] probe: %s", e)
 
 # === БАЗА ДАННЫХ ===
 def _conn():
@@ -1533,6 +1544,7 @@ async def lifespan(app):
     migrate()
     if not _started:
         _started = True
+        _ssl_probe()
         if WEBHOOK_URL:
             try:
                 setup_webhook()
