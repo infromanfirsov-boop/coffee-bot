@@ -2,7 +2,7 @@
 """Кофейный бонусный бот для MAX. v27 FINAL.
 python3 main.py | qr | test
 """
-import asyncio, csv, io, logging, os, shutil, sqlite3, sys, tempfile, threading, time, uuid
+import asyncio, csv, io, logging, os, random, shutil, sqlite3, sys, tempfile, threading, time, uuid
 from collections import OrderedDict, defaultdict
 from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime, timedelta
@@ -705,7 +705,7 @@ def menu(uid, name):
          [cb(HIST + " История", "show_history"), cb(HELP + " Помощь", "show_help")]]
     if not is_priv(uid):
         b += [[cb(MEDAL + " Награды", "show_badges"), cb(HAND + " Пригласить", "show_refer")],
-              [cb(STAR + " Отзыв", "show_review")]]
+              [cb(STAR + " Отзыв", "show_review"), cb("🎁 Колесо удачи", "openapp")]]
     if is_priv(uid):
         b += [[cb(RECEIPT + " Чек", "checkflow"), cb("🧾 Гость", "walkflow")],
               [cb(SEARCH + " Поиск", "show_search"), cb(USERS + " Клиенты", "show_clients")],
@@ -1464,6 +1464,11 @@ def handle_callback(uid, payload, name):
         buys = purchases_of(target["id"], 10)
         if not buys: return rep(f"{BAG} Покупок пока нет.", back())
         return rep(f"{BAG} {target['full_name'] or target['card_number']}:\n" + "\n".join(f"· {b['amount']:.0f} р. - {b['items']}" for b in buys), back())
+    if payload == "openapp":
+        tok = uuid.uuid4().hex
+        kv_set("app_tok_" + tok, uid)
+        return rep(f"{PARTY} Твоя карта и игра готовы!",
+                   [[{"type": "link", "text": "📱 Открыть приложение", "url": f"https://утро-кофе.рф/app?t={tok}"}]])
     if payload == "newflow":
         PENDING_NEW.set(uid, {"step": "name"})
         return rep(f"{PLUS} Гостю карта\nВведите имя гостя:", cancel() + back())
@@ -1939,6 +1944,52 @@ def api_webcard(phone: str = "", x_api_key: str = Header(default=""), request: R
         if not r: return {"ok": False}
         v = r["visits_count"]
     return {"ok": True, "card": r["card_number"], "points": balance(r["id"]), "visits": v, "level": lvl_name(v), "pct": pct(v)}
+# === ВЕБ-ПРИЛОЖЕНИЕ ===
+SPIN_SECTORS = [5, 5, 10, 5, 15, 5, 10, 25]
+
+def app_uid(request: Request, d):
+    tok = (d or {}).get("token", "") or request.headers.get("x-app-token", "")
+    if not tok: return None
+    return kv_get("app_tok_" + tok) or None
+
+@app.post("/api/app/me")
+async def app_me(request: Request):
+    try: d = await request.json()
+    except Exception: d = {}
+    uid = app_uid(request, d)
+    if not uid: raise HTTPException(401, "Открой приложение из бота")
+    u = ensure_user(uid)
+    today = datetime.now().strftime("%Y-%m-%d")
+    return {"ok": True, "name": u["full_name"] or "друг", "points": balance(u["id"]),
+            "level": lvl_name(u["visits_count"]), "pct": pct(u["visits_count"]),
+            "visits": u["visits_count"], "card": u["card_number"],
+            "spun": kv_get("spin_" + uid) == today, "streak": int(kv_get("streak_" + uid, "0") or 0)}
+
+@app.post("/api/app/spin")
+async def app_spin(request: Request):
+    try: d = await request.json()
+    except Exception: d = {}
+    uid = app_uid(request, d)
+    if not uid: raise HTTPException(401, "Открой приложение из бота")
+    now = datetime.now()
+    today = now.strftime("%Y-%m-%d")
+    if kv_get("spin_" + uid) == today:
+        raise HTTPException(429, "Уже крутил сегодня")
+    kv_set("spin_" + uid, today)
+    yest = (now - timedelta(days=1)).strftime("%Y-%m-%d")
+    streak = int(kv_get("streak_" + uid, "0") or 0)
+    streak = streak + 1 if kv_get("spinprev_" + uid) == yest else 1
+    kv_set("spinprev_" + uid, today)
+    kv_set("streak_" + uid, str(streak))
+    idx = random.choice(range(len(SPIN_SECTORS)))
+    pts = SPIN_SECTORS[idx]
+    bonus = 20 if streak % 3 == 0 else 0
+    u = ensure_user(uid)
+    with db() as c:
+        _batch(c, u["id"], pts + bonus, "game", f"🎁 Колесо удачи +{pts}" + (f" и серия 🔥 +{bonus}" if bonus else ""))
+        c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
+                  (u["id"], "accrual", pts + bonus, "🎁 Колесо удачи"))
+    return {"ok": True, "index": idx, "points": pts, "bonus": bonus, "streak": streak, "balance": balance(u["id"])}
 def make_table_qr():
     try:
         me = http.get(f"{API}/me", headers=H, timeout=10).json()
