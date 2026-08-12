@@ -386,6 +386,7 @@ def spend_points(uid, points, comment=""):
 
 def game_grant(uid_int, pts, comment):
     now = datetime.now()
+    kv_set(f"plays_{uid_int}", str(int(kv_get(f"plays_{uid_int}", "0") or 0) + 1))
     key = f"gcap_{uid_int}_{now.strftime('%Y-%m')}"
     used = int(kv_get(key, "0") or 0)
     if used >= GAME_CAP or pts <= 0: return 0
@@ -2062,7 +2063,6 @@ async def app_me(request: Request):
             "m3_done": kv_get("m3_" + uid) == today,
             "day": int(kv_get(f"dayn_{uid}", "1") or 1),
             "day_claimed": kv_get(f"dayc_{uid}") == datetime.now().strftime("%Y-%m-%d")}
-            "m3_done": kv_get("m3_" + uid) == today}
 
 @app.post("/api/app/spin")
 async def app_spin(request: Request):
@@ -2200,7 +2200,7 @@ async def app_leader(request: Request):
             u = c2.execute("SELECT full_name FROM users WHERE id=?", (int(uidn),)).fetchone()
         out.append({"name": (u["full_name"] or "гость") if u else "гость", "pts": r["v"]})
     return {"ok": True, "rows": out}
-G2048_REWARDS = {4: 3, 5: 6, 6: 10, 7: 15}
+G2048_REWARDS = {4: 3, 5: 6, 6: 10, 7: 15, 8: 25}
 
 @app.post("/api/app/g2048")
 async def app_g2048(request: Request):
@@ -2208,7 +2208,9 @@ async def app_g2048(request: Request):
     except Exception: d = {}
     uid = app_uid(request, d)
     if not uid: raise HTTPException(401, "Открой приложение из бота")
-    best = max(0, min(7, int(d.get("best", 0) or 0)))
+    best = max(0, min(8, int(d.get("best", 0) or 0)))
+    bk = f"g2048_{uid}_best"
+    if best > int(kv_get(bk, "0") or 0): kv_set(bk, str(best))
     now = datetime.now()
     key = f"g2048_{uid}_{now.strftime('%Y-%m-%d')}"
     done = int(kv_get(key, "0") or 0)
