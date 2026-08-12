@@ -46,6 +46,9 @@ header small{display:block;color:#8a7666;font-size:10px;font-weight:700;letter-s
 .scratchwrap{position:relative;width:300px;max-width:100%;height:140px;margin:12px auto 0}
 .scratchwrap canvas{position:absolute;inset:0;border-radius:16px;touch-action:none}
 .prize{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;color:#C2540A;background:#FFF3E4;border-radius:16px}
+.betopt{padding:10px 18px;border-radius:99px;border:2px solid #f0e2d0;background:#fff;font-weight:800;cursor:pointer}
+.cupbtn{font-size:36px;background:#FFF3E4;border:2px solid #FFD9AE;border-radius:16px;padding:12px 16px;cursor:pointer;transition:.2s}
+.cupbtn:active{transform:scale(.9)}
 footer{text-align:center;color:#b39b85;font-size:11px;margin-top:16px}
 </style>
 </head>
@@ -60,7 +63,7 @@ footer{text-align:center;color:#b39b85;font-size:11px;margin-top:16px}
 </div>
 <div class="game">
   <h2>🎡 Колесо удачи</h2>
-  <p>Один спин в день: 5–25 баллов. Три дня подряд — ещё +20!</p>
+  <p>Один спин в день: 0–15 баллов. Три дня подряд — ещё +10!</p>
   <div class="wheelwrap">
     <div class="ptr">🔻</div>
     <div class="wheel" id="wheel"></div>
@@ -71,7 +74,7 @@ footer{text-align:center;color:#b39b85;font-size:11px;margin-top:16px}
 </div>
 <div class="game" style="margin-top:14px">
   <h2>☕ Лови стаканчики</h2>
-  <p>20 секунд тапай по стаканчикам: 2 пойманных = 1 балл (максимум 15). Раз в день!</p>
+  <p>20 секунд тапай по стаканчикам: 3 пойманных = 1 балл (максимум 10). Раз в день!</p>
   <div class="catcharea" id="catcharea"><div class="catchui">🎮</div></div>
   <button class="spin" style="margin-top:12px" id="catchBtn" onclick="startCatch()">Играть!</button>
   <div class="res" id="catchres"></div>
@@ -88,11 +91,28 @@ footer{text-align:center;color:#b39b85;font-size:11px;margin-top:16px}
   <div class="scratchwrap" id="scratchwrap" style="display:none"><div class="prize" id="prize"></div><canvas id="scratch" width="300" height="140"></canvas></div>
   <button class="spin" style="margin-top:12px" id="scratchBtn" onclick="startScratch()">Получить карту</button>
   <div class="res" id="scratchres"></div>
+<div class="game" style="margin-top:14px">
+  <h2>🎰 Кофейная рулетка</h2>
+  <p>Ставка баллами → выбери стаканчик: под одним приз ×2.5! <b id="betleft"></b></p>
+  <div id="betBtns">
+    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px">
+      <button class="betopt" data-v="10" onclick="setBet(10)">10</button>
+      <button class="betopt" data-v="20" onclick="setBet(20)">20</button>
+      <button class="betopt" data-v="50" onclick="setBet(50)">50</button>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="cupbtn" onclick="placeBet(0)">☕</button>
+      <button class="cupbtn" onclick="placeBet(1)">☕</button>
+      <button class="cupbtn" onclick="placeBet(2)">☕</button>
+    </div>
+  </div>
+  <div class="res" id="betres"></div>
+</div>
 </div>
 <footer>Кофейня «Утро» · Ленинский, 16 · с любовью 🧡</footer>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script>
-var SECT=[5,5,10,5,15,5,10,25];
+var SECT=[0,5,5,10,0,5,15,5];
 var COLS=['#fff','#2B1A12','#fff','#2B1A12','#fff','#2B1A12','#fff','#2B1A12'];
 (function(){var w=document.getElementById('wheel');SECT.forEach(function(v,i){var d=document.createElement('div');d.className='wl';d.style.transform='rotate('+(i*45+22.5)+'deg)';d.style.color=COLS[i];d.textContent=v;w.appendChild(d);});})();
 var tok=null;
@@ -113,6 +133,8 @@ async function load(){
   if(ME.spun){var b=document.getElementById('spinBtn');b.disabled=true;b.textContent='Сегодня уже крутил — до завтра! ☀️';}
   if(ME.caught){var cb=document.getElementById('catchBtn');cb.disabled=true;cb.textContent='Сегодня уже играл!';}
   if(ME.scratch_done){var sb=document.getElementById('scratchBtn');sb.disabled=true;sb.textContent='Сегодня уже стирал!';}
+  document.getElementById('betleft').textContent='Осталось ставок: '+ME.bets_left;
+  if(ME.bets_left<=0){document.getElementById('betBtns').style.opacity=.5;document.getElementById('betres').textContent='Лимит ставок на сегодня исчерпан';}
 }
 function toggleQr(){var q=document.getElementById('qrbox');if(q.style.display==='block'){q.style.display='none';return;}q.style.display='block';if(!q.dataset.done){var qr=qrcode(0,'M');qr.addData(ME.card);qr.make();document.getElementById('qr').innerHTML=qr.createImgTag(5,8);q.dataset.done=1;}}
 var spinning=false;
@@ -203,6 +225,23 @@ async function startScratch(){
   cv.addEventListener('pointermove',rub);
   window.addEventListener('pointerup',function(){draw=false;});
 }
+var BET=10;
+function setBet(v){BET=v;document.querySelectorAll('.betopt').forEach(function(b){b.style.opacity=b.dataset.v==v?1:.45;});}
+async function placeBet(pick){
+  var res=document.getElementById('betres');
+  var r=await fetch('/api/app/bet',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok,bet:BET,pick:pick})});
+  if(r.status===429){res.textContent='Лимит 5 ставок в день!';return;}
+  if(r.status===402){res.textContent='Не хватает баллов для ставки';return;}
+  var d=await r.json();
+  var cups=document.querySelectorAll('.cupbtn');
+  cups.forEach(function(c,i){c.textContent=i===d.win_idx?'🎉':'💨';c.disabled=true;});
+  res.textContent=d.win?('🎉 Выигрыш +'+d.prize+'! Баланс: '+d.balance):('💨 Мимо! -'+d.bet+'. Баланс: '+d.balance);
+  document.getElementById('pts').innerHTML=d.balance+' <small>баллов</small>';
+  document.getElementById('betleft').textContent='Осталось ставок: '+d.left;
+  if(d.left<=0){document.getElementById('betBtns').style.opacity=.5;}
+  setTimeout(function(){cups.forEach(function(c){c.textContent='☕';c.disabled=false;});},2500);
+}
+setBet(10);
 load(); loadQuiz();
 </script>
 </body>
