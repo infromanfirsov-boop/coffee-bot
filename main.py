@@ -1970,7 +1970,8 @@ async def app_me(request: Request):
     return {"ok": True, "name": u["full_name"] or "друг", "points": balance(u["id"]),
             "level": lvl_name(u["visits_count"]), "pct": pct(u["visits_count"]),
             "visits": u["visits_count"], "card": u["card_number"],
-            "spun": kv_get("spin_" + uid) == today, "streak": int(kv_get("streak_" + uid, "0") or 0)}
+            "spun": kv_get("spin_" + uid) == today, "streak": int(kv_get("streak_" + uid, "0") or 0),
+            "caught": kv_get("catch_" + uid) == today}
 
 @app.post("/api/app/spin")
 async def app_spin(request: Request):
@@ -1997,6 +1998,28 @@ async def app_spin(request: Request):
         c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
                   (u["id"], "accrual", pts + bonus, "🎁 Колесо удачи"))
     return {"ok": True, "index": idx, "points": pts, "bonus": bonus, "streak": streak, "balance": balance(u["id"])}
+@app.post("/api/app/catch")
+async def app_catch(request: Request):
+    try: d = await request.json()
+    except Exception: d = {}
+    uid = app_uid(request, d)
+    if not uid: raise HTTPException(401, "Открой приложение из бота")
+    score = int(d.get("score", 0) or 0)
+    score = max(0, min(60, score))
+    now = datetime.now()
+    today = now.strftime("%Y-%m-%d")
+    if kv_get("catch_" + uid) == today:
+        raise HTTPException(429, "Сегодня уже играл")
+    kv_set("catch_" + uid, today)
+    pts = min(15, score // 2)
+    if pts <= 0:
+        return {"ok": True, "points": 0, "balance": None}
+    u = ensure_user(uid)
+    with db() as c:
+        _batch(c, u["id"], pts, "game", f"☕ Ловля стаканчиков +{pts}")
+        c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
+                  (u["id"], "accrual", pts, "☕ Ловля стаканчиков"))
+    return {"ok": True, "points": pts, "balance": balance(u["id"])}
 def make_table_qr():
     try:
         me = http.get(f"{API}/me", headers=H, timeout=10).json()
