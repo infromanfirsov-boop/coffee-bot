@@ -11,7 +11,7 @@
 <style>
 :root{--ink:#2B1A12;--sun:#FF7A00;--sun2:#FF9E3D}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{font-family:'Manrope',system-ui,sans-serif;background:linear-gradient(180deg,#FFF9F2,#FFEFD9);color:var(--ink);min-height:100vh;padding:16px;max-width:520px;margin:0 auto}
+body{font-family:'Manrope',system-ui,sans-serif;background:radial-gradient(700px 340px at 92% -80px, rgba(255,158,61,.28), transparent 60%),radial-gradient(500px 300px at -10% 40%, rgba(255,122,0,.10), transparent 60%),linear-gradient(180deg,#FFF9F2,#FFEFD9);color:var(--ink);min-height:100vh;padding:16px;max-width:520px;margin:0 auto}
 header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
 .mark{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--sun),var(--sun2));display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 6px 16px rgba(255,122,0,.35),0 0 0 2px rgba(255,178,94,.4);flex:none}
 header b{font-family:'Unbounded';font-weight:800;letter-spacing:.22em;text-transform:lowercase;font-size:18px}
@@ -49,6 +49,15 @@ header small{display:block;color:#8a7666;font-size:10px;font-weight:700;letter-s
 .betopt{padding:10px 18px;border-radius:99px;border:2px solid #f0e2d0;background:#fff;font-weight:800;cursor:pointer}
 .cupbtn{font-size:36px;background:#FFF3E4;border:2px solid #FFD9AE;border-radius:16px;padding:12px 16px;cursor:pointer;transition:.2s}
 .cupbtn:active{transform:scale(.9)}
+.bar{height:8px;background:rgba(255,255,255,.15);border-radius:99px;overflow:hidden;margin-top:12px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--sun),var(--sun2));border-radius:99px;transition:width .8s}
+.m3overlay{display:none;position:fixed;inset:0;background:rgba(43,26,18,.65);z-index:100;align-items:center;justify-content:center;padding:12px}
+.m3box{background:#FFF7EE;border-radius:24px;padding:16px;width:100%;max-width:400px}
+.m3hud{display:flex;justify-content:space-between;align-items:center;font-weight:800;margin-bottom:10px}
+.m3close{border:none;background:#f0e2d0;border-radius:10px;padding:6px 12px;font-weight:800;cursor:pointer}
+.m3board{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.m3c{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:20px;background:#fff;border-radius:10px;cursor:pointer;user-select:none;border:2px solid transparent}
+.m3c.sel{border-color:var(--sun);background:#FFE8D2}
 footer{text-align:center;color:#b39b85;font-size:11px;margin-top:16px}
 </style>
 </head>
@@ -57,7 +66,8 @@ footer{text-align:center;color:#b39b85;font-size:11px;margin-top:16px}
 <div class="card">
   <div class="lbl">Карта гостя · <span id="name"></span></div>
   <div class="pts" id="pts">… <small>баллов</small></div>
-  <div class="chips"><span class="chip" id="lvl">…</span><span class="chip" id="vis">…</span><span class="chip" id="streak">🔥 0</span></div>
+  <div class="chips"><span class="chip" id="lvl">…</span><span class="chip" id="vis">…</span><span class="chip" id="streak">🔥 0</span><span class="chip" id="exp" style="display:none"></span><span class="chip" id="fav" style="display:none"></span></div>
+  <div class="bar"><i id="prog" style="width:0%"></i></div>
   <button class="btnqr" onclick="toggleQr()">📳 Показать на кассе</button>
   <div class="qrbox" id="qrbox"><div id="qr"></div><div id="cardno" style="font-weight:800;margin-top:6px"></div><small>Покажи QR или назови номер бариста</small></div>
 </div>
@@ -107,6 +117,19 @@ footer{text-align:center;color:#b39b85;font-size:11px;margin-top:16px}
     </div>
   </div>
   <div class="res" id="betres"></div>
+  <div class="game" style="margin-top:14px">
+  <h2>🧩 Три в ряд</h2>
+  <p>Большая игра! Меняй местами кофейные фигурки, собирай combos. 20 ходов, награда до 12 баллов раз в день.</p>
+  <button class="spin" onclick="m3start()">Играть!</button>
+  <div class="res" id="m3last"></div>
+</div>
+<div class="m3overlay" id="m3overlay">
+  <div class="m3box">
+    <div class="m3hud"><span>🎯 <b id="m3score">0</b></span><span>👟 ходы: <b id="m3moves">20</b></span><button class="m3close" onclick="m3close()">✕</button></div>
+    <div class="m3board" id="m3board"></div>
+    <div class="res" id="m3res"></div>
+  </div>
+</div>
 </div>
 </div>
 <footer>Кофейня «Утро» · Ленинский, 16 · с любовью 🧡</footer>
@@ -134,6 +157,10 @@ async function load(){
   if(ME.caught){var cb=document.getElementById('catchBtn');cb.disabled=true;cb.textContent='Сегодня уже играл!';}
   if(ME.scratch_done){var sb=document.getElementById('scratchBtn');sb.disabled=true;sb.textContent='Сегодня уже стирал!';}
   document.getElementById('betleft').textContent='Осталось ставок: '+ME.bets_left;
+  if(ME.exp>0){var e=document.getElementById('exp');e.style.display='';e.textContent='⏳ '+ME.exp+' сгорает';}
+  if(ME.fav){var f=document.getElementById('fav');f.style.display='';f.textContent='❤️ '+ME.fav;}
+  if(ME.next){document.getElementById('prog').style.width=Math.min(100,Math.round(ME.visits/ME.next*100))+'%';}
+  if(ME.m3_done){document.getElementById('m3last').textContent='Награда за сегодня получена — играть можно для удовольствия!';}
   if(ME.bets_left<=0){document.getElementById('betBtns').style.opacity=.5;document.getElementById('betres').textContent='Лимит ставок на сегодня исчерпан';}
 }
 function toggleQr(){var q=document.getElementById('qrbox');if(q.style.display==='block'){q.style.display='none';return;}q.style.display='block';if(!q.dataset.done){var qr=qrcode(0,'M');qr.addData(ME.card);qr.make();document.getElementById('qr').innerHTML=qr.createImgTag(5,8);q.dataset.done=1;}}
@@ -242,6 +269,75 @@ async function placeBet(pick){
   setTimeout(function(){cups.forEach(function(c){c.textContent='☕';c.disabled=false;});},2500);
 }
 setBet(10);
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
+var M3={g:[],moves:0,score:0,busy:false,sel:null,T:['☕','🥐','🍩','🥛','','🧁']};
+function ri(n){return Math.floor(Math.random()*n);}
+function m3find(){
+  var g=M3.g,mk={};
+  for(var r=0;r<8;r++)for(var c=0;c<8;c++){
+    var t=g[r][c];if(t<0)continue;
+    if(c<6&&g[r][c+1]===t&&g[r][c+2]===t){var k=c;while(k<8&&g[r][k]===t){mk[r+','+k]=1;k++;}}
+    if(r<6&&g[r+1][c]===t&&g[r+2][c]===t){var k2=r;while(k2<8&&g[k2][c]===t){mk[k2+','+c]=1;k2++;}}
+  }
+  return Object.keys(mk).map(function(s){return s.split(',').map(Number);});
+}
+function m3collapse(){
+  var g=M3.g;
+  for(var c=0;c<8;c++){
+    var col=[];for(var r=7;r>=0;r--){if(g[r][c]>=0)col.push(g[r][c]);}
+    while(col.length<8)col.push(ri(6));
+    for(var r2=7;r2>=0;r2--){g[r2][c]=col[7-r2];}
+  }
+}
+function m3render(){
+  var b=document.getElementById('m3board');b.innerHTML='';
+  for(var r=0;r<8;r++)for(var c=0;c<8;c++){
+    var d=document.createElement('div');d.className='m3c'+(M3.sel&&M3.sel[0]===r&&M3.sel[1]===c?' sel':'');
+    d.textContent=M3.g[r][c]>=0?M3.T[M3.g[r][c]]:'';
+    d.onclick=(function(rr,cc){return function(){m3tap(rr,cc);};})(r,c);
+    b.appendChild(d);
+  }
+}
+function m3hud(){document.getElementById('m3score').textContent=M3.score;document.getElementById('m3moves').textContent=M3.moves;}
+function m3swap(a,b){var t=M3.g[a[0]][a[1]];M3.g[a[0]][a[1]]=M3.g[b[0]][b[1]];M3.g[b[0]][b[1]]=t;}
+function m3tap(r,c){
+  if(M3.busy||M3.moves<=0)return;
+  if(M3.sel&&M3.sel[0]===r&&M3.sel[1]===c){M3.sel=null;m3render();return;}
+  if(M3.sel&&Math.abs(M3.sel[0]-r)+Math.abs(M3.sel[1]-c)===1){
+    var a=[M3.sel[0],M3.sel[1]],bb=[r,c];M3.sel=null;
+    m3swap(a,bb);
+    if(m3find().length){M3.moves--;m3render();m3resolve().then(function(){m3hud();if(M3.moves<=0)m3end();});}
+    else{m3swap(a,bb);m3render();}
+  }else{M3.sel=[r,c];m3render();}
+}
+async function m3resolve(){
+  M3.busy=true;var chain=0;
+  while(true){
+    var m=m3find();if(!m.length)break;
+    chain++;M3.score+=m.length*10*chain;
+    m.forEach(function(p){M3.g[p[0]][p[1]]=-1;});
+    m3render();m3hud();await sleep(180);
+    m3collapse();m3render();await sleep(180);
+  }
+  M3.busy=false;
+}
+function m3start(){
+  M3.moves=20;M3.score=0;M3.busy=false;M3.sel=null;
+  M3.g=[];for(var r=0;r<8;r++){var row=[];for(var c=0;c<8;c++){row.push(ri(6));}M3.g.push(row);}
+  while(m3find().length){M3.g=[];for(var r2=0;r2<8;r2++){var row2=[];for(var c2=0;c2<8;c2++){row2.push(ri(6));}M3.g.push(row2);}}
+  document.getElementById('m3res').textContent='';
+  document.getElementById('m3overlay').style.display='flex';
+  m3render();m3hud();
+}
+function m3close(){document.getElementById('m3overlay').style.display='none';}
+async function m3end(){
+  var txt='🏁 Счёт: '+M3.score;
+  var r=await fetch('/api/app/match3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok,score:M3.score})});
+  if(r.ok){var d=await r.json();if(d.points>0){txt+=' → +'+d.points+' баллов!';document.getElementById('pts').innerHTML=d.balance+' <small>баллов</small>';}}
+  else if(r.status===429){txt+=' · награда за сегодня уже получена';}
+  document.getElementById('m3res').textContent=txt;
+  document.getElementById('m3last').textContent='Последний счёт: '+M3.score;
+}
 load(); loadQuiz();
 </script>
 </body>
