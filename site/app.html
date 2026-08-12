@@ -42,6 +42,10 @@ header small{display:block;color:#8a7666;font-size:10px;font-weight:700;letter-s
 @keyframes pop{from{transform:scale(.3)}to{transform:scale(1)}}
 .catchui{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:40px;opacity:.5}
 .catchtop{position:absolute;top:8px;left:12px;right:12px;display:flex;justify-content:space-between;font-weight:800;font-size:14px;color:#C2540A;z-index:2}
+.quizbtn{display:block;width:100%;margin:6px 0;padding:12px;border-radius:12px;border:2px solid #f0e2d0;background:#fff;font-weight:700;font-size:14px;cursor:pointer}
+.scratchwrap{position:relative;width:300px;max-width:100%;height:140px;margin:12px auto 0}
+.scratchwrap canvas{position:absolute;inset:0;border-radius:16px;touch-action:none}
+.prize{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;color:#C2540A;background:#FFF3E4;border-radius:16px}
 footer{text-align:center;color:#b39b85;font-size:11px;margin-top:16px}
 </style>
 </head>
@@ -72,6 +76,19 @@ footer{text-align:center;color:#b39b85;font-size:11px;margin-top:16px}
   <button class="spin" style="margin-top:12px" id="catchBtn" onclick="startCatch()">Играть!</button>
   <div class="res" id="catchres"></div>
 </div>
+<div class="game" style="margin-top:14px">
+  <h2>🧠 Вопрос дня</h2>
+  <p id="quizq">Загрузка…</p>
+  <div id="quizbtns"></div>
+  <div class="res" id="quizres"></div>
+</div>
+<div class="game" style="margin-top:14px">
+  <h2>🎫 Скретч-карта</h2>
+  <p>Сотри золотой слой пальцем — под ним приз! Раз в день.</p>
+  <div class="scratchwrap" id="scratchwrap" style="display:none"><div class="prize" id="prize"></div><canvas id="scratch" width="300" height="140"></canvas></div>
+  <button class="spin" style="margin-top:12px" id="scratchBtn" onclick="startScratch()">Получить карту</button>
+  <div class="res" id="scratchres"></div>
+</div>
 <footer>Кофейня «Утро» · Ленинский, 16 · с любовью 🧡</footer>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script>
@@ -95,6 +112,7 @@ async function load(){
   document.getElementById('cardno').textContent=ME.card;
   if(ME.spun){var b=document.getElementById('spinBtn');b.disabled=true;b.textContent='Сегодня уже крутил — до завтра! ☀️';}
   if(ME.caught){var cb=document.getElementById('catchBtn');cb.disabled=true;cb.textContent='Сегодня уже играл!';}
+  if(ME.scratch_done){var sb=document.getElementById('scratchBtn');sb.disabled=true;sb.textContent='Сегодня уже стирал!';}
 }
 function toggleQr(){var q=document.getElementById('qrbox');if(q.style.display==='block'){q.style.display='none';return;}q.style.display='block';if(!q.dataset.done){var qr=qrcode(0,'M');qr.addData(ME.card);qr.make();document.getElementById('qr').innerHTML=qr.createImgTag(5,8);q.dataset.done=1;}}
 var spinning=false;
@@ -145,7 +163,47 @@ async function finishCatch(score){
   document.getElementById('catchres').textContent='Поймано '+score+' → +'+d.points+' баллов!'+(d.balance?' Баланс: '+d.balance:'');
   if(d.balance){document.getElementById('pts').innerHTML=d.balance+' <small>баллов</small>';}
 }
-load();
+async function loadQuiz(){
+  var r=await fetch('/api/app/quiz',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok,get:1})});
+  if(!r.ok)return;
+  var d=await r.json();
+  document.getElementById('quizq').textContent=d.q;
+  var box=document.getElementById('quizbtns');
+  if(d.done){box.innerHTML='<button class="spin" disabled>Сегодня уже отвечал!</button>';return;}
+  box.innerHTML=d.a.map(function(t,i){return '<button class="quizbtn" onclick="answer('+i+')">'+t+'</button>';}).join('');
+}
+async function answer(i){
+  var r=await fetch('/api/app/quiz',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok,ans:i})});
+  if(r.status===429){document.getElementById('quizres').textContent='Сегодня уже отвечал!';return;}
+  var d=await r.json();
+  document.getElementById('quizbtns').innerHTML='<button class="spin" disabled>До завтра!</button>';
+  document.getElementById('quizres').textContent=(d.correct?'✅ Верно! +'+d.points+' баллов':'❌ Мимо! Правильно: '+d.right_txt+' (+'+d.points+' за участие)');
+  if(d.balance){document.getElementById('pts').innerHTML=d.balance+' <small>баллов</small>';}
+}
+var scratching=false;
+async function startScratch(){
+  var r=await fetch('/api/app/scratch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok})});
+  if(r.status===429){document.getElementById('scratchres').textContent='Сегодня уже стирал!';return;}
+  var d=await r.json();
+  var b=document.getElementById('scratchBtn');b.disabled=true;b.textContent='До завтра!';
+  document.getElementById('prize').textContent='+'+d.points+' баллов!';
+  document.getElementById('scratchwrap').style.display='block';
+  var cv=document.getElementById('scratch');var ctx=cv.getContext('2d');
+  ctx.fillStyle='#C9A227';ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.fillStyle='#7a5c12';ctx.font='bold 18px Manrope';ctx.textAlign='center';ctx.fillText('стирай меня ✨',150,78);
+  ctx.globalCompositeOperation='destination-out';
+  var draw=false,cleared=false;
+  function pos(e){var r2=cv.getBoundingClientRect();return [(e.clientX-r2.left)*(cv.width/r2.width),(e.clientY-r2.top)*(cv.height/r2.height)];}
+  function rub(e){if(!draw)return;e.preventDefault();var p=pos(e);ctx.beginPath();ctx.arc(p[0],p[1],18,0,7);ctx.fill();
+    if(!cleared){var data=ctx.getImageData(0,0,cv.width,cv.height).data;var n=0,tot=0;for(var i=3;i<data.length;i+=64){tot++;if(data[i]<128)n++;}
+      if(n>tot*0.45){cleared=true;cv.style.transition='opacity .6s';cv.style.opacity=0;
+        document.getElementById('scratchres').textContent='🎉 Баланс: '+d.balance;
+        document.getElementById('pts').innerHTML=d.balance+' <small>баллов</small>';}}}
+  cv.addEventListener('pointerdown',function(e){draw=true;rub(e);});
+  cv.addEventListener('pointermove',rub);
+  window.addEventListener('pointerup',function(){draw=false;});
+}
+load(); loadQuiz();
 </script>
 </body>
 </html>
