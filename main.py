@@ -2059,6 +2059,9 @@ async def app_me(request: Request):
             "caught": kv_get("catch_" + uid) == today,
             "quiz_done": kv_get("quiz_" + uid) == today, "scratch_done": kv_get("scratch_" + uid) == today,
             "bets_left": 5 - int(kv_get(f"bet_{uid}_{today}", "0") or 0),
+            "m3_done": kv_get("m3_" + uid) == today,
+            "day": int(kv_get(f"dayn_{uid}", "1") or 1),
+            "day_claimed": kv_get(f"dayc_{uid}") == datetime.now().strftime("%Y-%m-%d")}
             "m3_done": kv_get("m3_" + uid) == today}
 
 @app.post("/api/app/spin")
@@ -2245,6 +2248,58 @@ async def app_tycoon(request: Request):
         granted = game_grant(u["id"], 3, "🏪 Кофейный магнат")
         return {"ok": True, "granted": granted, "state": state, "balance": balance(u["id"])}
     return {"ok": True, "state": state}
+DAY_REWARDS = [5, 5, 10, 10, 15, 20, 50]
+
+@app.post("/api/app/day")
+async def app_day(request: Request):
+    try: d = await request.json()
+    except Exception: d = {}
+    uid = app_uid(request, d)
+    if not uid: raise HTTPException(401, "Открой приложение из бота")
+    u = ensure_user(uid)
+    now = datetime.now()
+    today = now.strftime("%Y-%m-%d")
+    yest = (now - timedelta(days=1)).strftime("%Y-%m-%d")
+    last = kv_get(f"dayl_{uid}")
+    day = int(kv_get(f"dayn_{uid}", "1") or 1)
+    claimed = kv_get(f"dayc_{uid}") == today
+    if not claimed:
+        if last == yest:
+            day = min(7, day + 1 if day < 7 else 1)
+        elif last and last != today:
+            day = 1
+        pts = DAY_REWARDS[day - 1]
+        granted = game_grant(u["id"], pts, f"📅 Бонус дня {day}")
+        kv_set(f"dayl_{uid}", today)
+        kv_set(f"dayn_{uid}", str(day))
+        kv_set(f"dayc_{uid}", today)
+        return {"ok": True, "claimed": False, "day": day, "pts": granted, "balance": balance(u["id"])}
+    return {"ok": True, "claimed": True, "day": day, "pts": 0, "balance": balance(u["id"])}
+
+@app.post("/api/app/achs")
+async def app_achs(request: Request):
+    try: d = await request.json()
+    except Exception: d = {}
+    uid = app_uid(request, d)
+    if not uid: raise HTTPException(401, "Открой приложение из бота")
+    u = ensure_user(uid)
+    got = []
+    # first_game / ten_games — считаем по kv с префиксом played_
+    plays = int(kv_get(f"plays_{uid}", "0") or 0)
+    if plays >= 1: got.append("first_game")
+    if plays >= 10: got.append("ten_games")
+    with db() as c:
+        total = c.execute("SELECT COALESCE(SUM(points_left),0) FROM points_batches WHERE user_id=? AND points_left>0", (u["id"],)).fetchone()[0]
+        ever = c.execute("SELECT COALESCE(SUM(CASE WHEN points>0 THEN points ELSE 0 END),0) FROM transactions WHERE user_id=?", (u["id"],)).fetchone()[0]
+    if ever >= 100: got.append("hundred")
+    if ever >= 1000: got.append("thousand")
+    if u["visits_count"] >= 60: got.append("vip")
+    ex = set(x for x in (kv_get(f"expl_{uid}") or "").split(",") if x)
+    if len(ex) >= 5: got.append("explorer")
+    if (int(kv_get(f"dayn_{uid}", "1") or 1)) >= 7: got.append("streak7")
+    if (int(kv_get(f"g2048_{uid}_best", "0") or 0)) >= 7: got.append("gold2048")
+    if (int(kv_get(f"g2048_{uid}_best", "0") or 0)) >= 8: got.append("sun2048")
+    return {"ok": True, "achs": got}
 def make_table_qr():
     try:
         me = http.get(f"{API}/me", headers=H, timeout=10).json()
