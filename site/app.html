@@ -287,7 +287,7 @@ async function placeBet(pick){
 setBet(10);
 function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
 var M3={g:[],moves:0,score:0,busy:false,sel:null,hints:3,
-T:['☕','🥐','🍩','','🧁',''],cells:[]};
+T:['\u2615','\uD83E\uDD50','\uD83C\uDF69','\uD83C\uDF6A','\uD83E\uDDC1','\uD83E\uDD5B'],cells:[]};
 function ri(n){return Math.floor(Math.random()*n);}
 function m3build(){
   var b=document.getElementById('m3board');b.innerHTML='';M3.cells=[];
