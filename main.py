@@ -77,11 +77,16 @@ ADMINS = set(x.strip() for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip
 STAFF = set(x.strip() for x in os.getenv("STAFF_IDS", "").split(",") if x.strip())
 WELCOME = _env_int("WELCOME_BONUS", "100")
 DB = os.getenv("DB_PATH", "coffee_bot.db").strip() or "coffee_bot.db"
-EXPIRE_DAYS = _env_int("POINTS_EXPIRE_DAYS", "90")
+EXPIRE_DAYS = _env_int("POINTS_EXPIRE_DAYS", "60")
 WARN_DAYS = _env_int("POINTS_EXPIRE_WARNING_DAYS", "7")
 BDAY_BONUS = _env_int("BIRTHDAY_BONUS", "200")
 BDAY_DAYS = _env_int("BIRTHDAY_DAYS", "3")
-MAX_PAY = _env_int("MAX_PAY_PERCENT", "50")
+MAX_PAY = _env_int("MAX_PAY_PERCENT", "30")
+GAME_CAP = _env_int("GAME_CAP_MONTH", "300")
+CHALLENGE_PTS = _env_int("CHALLENGE_PTS", "50")
+EXPLORER_PTS = _env_int("EXPLORER_PTS", "100")
+STREAK_PTS = _env_int("STREAK_PTS", "30")
+ECO_PTS = _env_int("ECO_PTS", "10")
 REF_BONUS = _env_int("REFERRAL_BONUS", "50")
 WINBACK_DAYS = _env_int("WINBACK_DAYS", "14")
 WINBACK_BONUS = _env_int("WINBACK_BONUS", "50")
@@ -378,6 +383,22 @@ def spend_points(uid, points, comment=""):
         BAL.drop(uid)
         return True, bal - points
 
+
+def game_grant(uid_int, pts, comment):
+    now = datetime.now()
+    key = f"gcap_{uid_int}_{now.strftime('%Y-%m')}"
+    used = int(kv_get(key, "0") or 0)
+    if used >= GAME_CAP or pts <= 0: return 0
+    pts = min(pts, GAME_CAP - used)
+    kv_set(key, str(used + pts))
+    wk = now.strftime("%G-W%V")
+    lk = f"lb_{wk}_{uid_int}"
+    kv_set(lk, str(int(kv_get(lk, "0") or 0) + pts))
+    with db() as c:
+        _batch(c, uid_int, pts, "game", comment)
+        c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
+                  (uid_int, "accrual", pts, comment))
+    return pts
 def find_user(q):
     qo = q.strip(); q = qo.lower()
     with db() as c:
@@ -1037,7 +1058,8 @@ def admin_card(u):
          [cb(MINUS + "50", f"sub_50_{u['card_number']}"), cb(MINUS + "100", f"sub_100_{u['card_number']}"), cb(MINUS + "200", f"sub_200_{u['card_number']}")],
          [cb(RECEIPT + " Чек", f"chk_{u['card_number']}"), cb(BAG + " Покупки", f"buy_{u['card_number']}")],
          [cb(PHONE + " Телефон", f"phq_{u['card_number']}"), cb(EDIT + " Имя", f"nmq_{u['card_number']}")],
-         [cb("📚 Книга", f"book_{u['card_number']}"), cb("🗑 Удалить", f"delq_{u['card_number']}")]] + back()
+         [cb("📚 Книга", f"book_{u['card_number']}"), cb("🌱 Эко", f"eco_{u['card_number']}")],
+         [cb("🗑 Удалить", f"delq_{u['card_number']}")]] + back()
     return rep(txt, b)
 
 def apply_delta(uid, delta, target, comment=""):
@@ -1071,6 +1093,42 @@ def apply_cashback(target, amount, items=None):
         else:
             c.execute("INSERT INTO purchases(user_id,amount,item,receipt_id,created_at) VALUES(?,?,?,?,?)",
                       (target["id"], amount, "", rid, datetime.now()))
+        now2 = datetime.now()
+        wk = now2.strftime("%G-W%V")
+        hist = [x for x in (kv_get(f"wch_{target['id']}") or "").split(",") if x]
+        hist.append(now2.strftime("%Y-%m-%d"))
+        kv_set(f"wch_{target['id']}", ",".join(hist[-12:]))
+        hs = set(hist)
+        cut7 = (now2 - timedelta(days=7)).strftime("%Y-%m-%d")
+        if kv_get(f"wchd_{target['id']}") != wk and len(set(x for x in hist if x >= cut7)) >= 3:
+            kv_set(f"wchd_{target['id']}", wk)
+            _batch(c, target["id"], CHALLENGE_PTS, "challenge", "🏆 Челлендж недели: 3 визита")
+            c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
+                      (target["id"], "accrual", CHALLENGE_PTS, "🏆 Челлендж недели"))
+            send_text(int(target["max_user_id"]), f"{PARTY} Челлендж недели выполнен: 3 визита за 7 дней! +{CHALLENGE_PTS} баллов {MEDAL}")
+        t0, y1, y2 = now2.strftime("%Y-%m-%d"), (now2 - timedelta(days=1)).strftime("%Y-%m-%d"), (now2 - timedelta(days=2)).strftime("%Y-%m-%d")
+        if t0 in hs and y1 in hs and y2 in hs:
+            la = kv_get(f"vstk_{target['id']}") or ""
+            if not la or la < (now2 - timedelta(days=7)).strftime("%Y-%m-%d"):
+                kv_set(f"vstk_{target['id']}", t0)
+                _batch(c, target["id"], STREAK_PTS, "streak", "🔥 3 дня подряд")
+                c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
+                          (target["id"], "accrual", STREAK_PTS, "🔥 3 дня подряд"))
+                send_text(int(target["max_user_id"]), f"{PARTY} Три дня подряд! +{STREAK_PTS} баллов 🔥")
+        if items:
+            ex = set(x for x in (kv_get(f"expl_{target['id']}") or "").split(",") if x)
+            grew = False
+            for it in items:
+                if "автор" in it and it not in ex:
+                    ex.add(it); grew = True
+            if grew:
+                kv_set(f"expl_{target['id']}", ",".join(sorted(ex)))
+            if len(ex) >= 5 and kv_get(f"expld_{target['id']}") != "1":
+                kv_set(f"expld_{target['id']}", "1")
+                _batch(c, target["id"], EXPLORER_PTS, "explorer", "🗺 Исследователь меню: 5 авторских")
+                c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
+                          (target["id"], "accrual", EXPLORER_PTS, "🗺 Исследователь меню"))
+                send_text(int(target["max_user_id"]), f"{PARTY} Ты попробовал 5 авторских напитков! +{EXPLORER_PTS} баллов 🗺")
         ref = c.execute("SELECT referred_by,ref_done FROM users WHERE id=?", (target["id"],)).fetchone()
         if ref and ref["referred_by"] and not ref["ref_done"]:
             inv_row = c.execute("SELECT id,max_user_id FROM users WHERE card_number=?", (ref["referred_by"],)).fetchone()
@@ -1416,7 +1474,7 @@ def handle_callback(uid, payload, name):
     if new and not is_priv(uid):
         return menu(uid, name)
     PRIV = ("cashflow", "payflow", "show_search", "show_top", "show_abc", "show_rfm", "show_status", "checkflow", "walkflow", "newflow")
-    if payload in PRIV or payload.startswith(("add_", "sub_", "input_", "cash_", "pay_", "sp:", "deduct_", "rcc_", "rcp_", "qa_", "sel_", "buy_", "ck_", "chk_", "ckd_", "ckn_", "book_")):
+    if payload in PRIV or payload.startswith(("add_", "sub_", "input_", "cash_", "pay_", "sp:", "deduct_", "rcc_", "rcp_", "qa_", "sel_", "buy_", "ck_", "chk_", "ckd_", "ckn_", "book_", "eco_")):
         if not is_priv(uid): return rep(f"{NO} Только персонал.", back())
     if payload in ("show_clients", "export_csv", "export_files", "show_insights", "show_broadcast") or payload.startswith(("cp:", "review_ok_", "review_no_", "phq_", "delq_", "delyes_", "nmq_")):
         if uid not in ADMINS: return rep(f"{NO} Только админ.", back())
@@ -1565,6 +1623,14 @@ def handle_callback(uid, payload, name):
             c.execute("DELETE FROM users WHERE id=?", (i,))
         BAL.drop(i)
         return rep(f"{OK} Клиент удалён из базы.", back())
+    if payload.startswith("eco_"):
+        target = find_user(payload[4:])
+        if not target: return rep(f"{WARN} Не найден.", back())
+        with db() as c:
+            _batch(c, target["id"], ECO_PTS, "eco", "🌱 Своя кружка")
+            c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
+                      (target["id"], "accrual", ECO_PTS, "🌱 Своя кружка"))
+        return rep(f"{OK} +{ECO_PTS} за свою кружку! 🌱", back())
     if payload.startswith("book_"):
         target = find_user(payload[5:])
         if not target: return rep(f"{WARN} Не найден.", back())
@@ -1945,7 +2011,7 @@ def api_webcard(phone: str = "", x_api_key: str = Header(default=""), request: R
         v = r["visits_count"]
     return {"ok": True, "card": r["card_number"], "points": balance(r["id"]), "visits": v, "level": lvl_name(v), "pct": pct(v)}
 # === ВЕБ-ПРИЛОЖЕНИЕ ===
-SPIN_SECTORS = [0, 5, 5, 10, 0, 5, 15, 5]
+SPIN_SECTORS = [0, 5, 5, 10, 0, 5, 10, 5]
 QUESTIONS = [
     {"q": "Почему напиток называется «бамбл»?", "a": ["За полосатые слои, как у шмеля", "За бодрящий гул", "В честь изобретателя Бамбла"], "c": 0},
     {"q": "Что в основе рафа?", "a": ["Сливки", "Вода", "Йогурт"], "c": 0},
@@ -2013,7 +2079,7 @@ async def app_spin(request: Request):
     kv_set("streak_" + uid, str(streak))
     idx = random.choice(range(len(SPIN_SECTORS)))
     pts = SPIN_SECTORS[idx]
-    bonus = 10 if streak % 3 == 0 else 0
+    bonus = 5 if streak % 3 == 0 else 0
     u = ensure_user(uid)
     with db() as c:
         _batch(c, u["id"], pts + bonus, "game", f"🎁 Колесо удачи +{pts}" + (f" и серия 🔥 +{bonus}" if bonus else ""))
@@ -2133,6 +2199,22 @@ async def app_match3(request: Request):
         c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
                   (u["id"], "accrual", pts, "🧩 3 в ряд"))
     return {"ok": True, "points": pts, "balance": balance(u["id"])}
+@app.post("/api/app/leader")
+async def app_leader(request: Request):
+    try: d = await request.json()
+    except Exception: d = {}
+    uid = app_uid(request, d)
+    if not uid: raise HTTPException(401, "Открой приложение из бота")
+    wk = datetime.now().strftime("%G-W%V")
+    with db_ro() as c:
+        rows = c.execute("SELECT key, CAST(value AS INT) v FROM kv WHERE key LIKE ? ORDER BY v DESC LIMIT 10", (f"lb_{wk}_%",)).fetchall()
+    out = []
+    for r in rows:
+        uidn = r["key"].split("_")[-1]
+        with db_ro() as c2:
+            u = c2.execute("SELECT full_name FROM users WHERE id=?", (int(uidn),)).fetchone()
+        out.append({"name": (u["full_name"] or "гость") if u else "гость", "pts": r["v"]})
+    return {"ok": True, "rows": out}
 def make_table_qr():
     try:
         me = http.get(f"{API}/me", headers=H, timeout=10).json()
