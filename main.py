@@ -2,7 +2,7 @@
 """Кофейный бонусный бот для MAX. v27 FINAL.
 python3 main.py | qr | test
 """
-import asyncio, csv, io, logging, os, random, shutil, sqlite3, sys, tempfile, threading, time, uuid
+import asyncio, csv, io, json, logging, os, random, shutil, sqlite3, sys, tempfile, threading, time, uuid
 from collections import OrderedDict, defaultdict
 from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime, timedelta
@@ -2218,6 +2218,32 @@ async def app_g2048(request: Request):
         granted = game_grant(ensure_user(uid)["id"], grant, "☕ 2048")
         kv_set(key, str(done + granted))
     return {"ok": True, "granted": granted, "balance": balance(ensure_user(uid)["id"])}
+@app.post("/api/app/tycoon")
+async def app_tycoon(request: Request):
+    try: d = await request.json()
+    except Exception: d = {}
+    uid = app_uid(request, d)
+    if not uid: raise HTTPException(401, "Открой приложение из бота")
+    u = ensure_user(uid)
+    key = f"tyc_{uid}"
+    now = time.time()
+    st = kv_get(key)
+    state = json.loads(st) if st else {"c": 0, "g": 0, "b": 0, "m": 0, "t": now}
+    if d.get("get"):
+        return {"ok": True, "state": state}
+    if d.get("save"):
+        s2 = d["save"]
+        state = {"c": max(0, min(1e9, float(s2.get("c", 0)))), "g": int(s2.get("g", 0)),
+                 "b": int(s2.get("b", 0)), "m": int(s2.get("m", 0)), "t": now}
+        kv_set(key, json.dumps(state))
+        return {"ok": True, "state": state}
+    if d.get("exchange"):
+        if state["c"] < 500: raise HTTPException(400, "Мало монет")
+        state["c"] -= 500
+        kv_set(key, json.dumps(state))
+        granted = game_grant(u["id"], 3, "🏪 Кофейный магнат")
+        return {"ok": True, "granted": granted, "state": state, "balance": balance(u["id"])}
+    return {"ok": True, "state": state}
 def make_table_qr():
     try:
         me = http.get(f"{API}/me", headers=H, timeout=10).json()
