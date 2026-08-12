@@ -1952,6 +1952,13 @@ def app_uid(request: Request, d):
     if not tok: return None
     return kv_get("app_tok_" + tok) or None
 
+@app.get("/app", response_class=HTMLResponse)
+def app_page():
+    p = os.path.join(BASE, "site", "app.html")
+    try:
+        with open(p, encoding="utf-8") as f: return f.read()
+    except OSError:
+        return "<h1>app.html не найден</h1>"
 @app.post("/api/app/me")
 async def app_me(request: Request):
     try: d = await request.json()
