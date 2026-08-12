@@ -95,22 +95,35 @@ header small{display:block;color:#8a7666;font-size:10px;font-weight:700;letter-s
 .tcps{text-align:center;color:#8a7666;font-size:11px;font-weight:700;margin-bottom:8px}
 .tscene{position:relative;height:150px;border-radius:16px;overflow:hidden;margin-bottom:10px;background:linear-gradient(180deg,#FFEFD9 0 62%,#8a5a33 62% 78%,#5a3a1e 78%)}
 .tscene:after{content:"🪟";position:absolute;top:8px;left:12px;font-size:34px;opacity:.8}
+.tsign{position:absolute;top:6px;left:50%;transform:translateX(-50%);background:var(--ink);color:#FFB25E;font-family:'Unbounded';font-size:10px;letter-spacing:.2em;padding:4px 10px;border-radius:8px;box-shadow:0 4px 10px rgba(0,0,0,.25)}
+.tsteam{position:absolute;top:36px;right:16px;font-size:14px;opacity:0}
+.tsteam.on{opacity:1;animation:steam 1.6s infinite}
+@keyframes steam{0%{transform:translateY(0);opacity:.7}100%{transform:translateY(-14px);opacity:0}}
+.tdisplay{position:absolute;top:42px;left:14px;font-size:16px;letter-spacing:2px}
 .tstuff{position:absolute;top:6px;right:10px;display:flex;gap:6px;font-size:22px;z-index:2}
 .tstuff span{position:relative}
 .tstuff i{position:absolute;bottom:-6px;right:-6px;background:#fff;border-radius:99px;font-size:8px;font-style:normal;font-weight:800;padding:1px 4px;box-shadow:0 1px 4px rgba(0,0,0,.2)}
 .tqueue{position:absolute;inset:0}
 .tcust{position:absolute;bottom:44px;font-size:32px;cursor:pointer;animation:walkin .7s ease-out;user-select:none}
 .tcust em{position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-style:normal;font-size:12px;background:#fff;border-radius:99px;padding:1px 5px;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.tcust.vip{filter:drop-shadow(0 0 6px #F5A623)}
+.tcust.vip em{background:#F5A623;color:#fff}
 .tcust.served{animation:served .5s forwards}
 .tcust.angry{animation:angry .5s forwards}
 @keyframes walkin{from{transform:translateX(140px);opacity:0}}
 @keyframes served{to{transform:translateY(-36px) scale(1.25);opacity:0}}
 @keyframes angry{to{transform:translateX(140px);opacity:0}}
-.tfloat{position:absolute;font-weight:800;color:#1D7A3D;animation:floatup 1s forwards;z-index:5}
+.tfloat{position:absolute;font-weight:800;color:#1D7A3D;animation:floatup 1s forwards;z-index:5;font-size:13px}
 @keyframes floatup{to{transform:translateY(-44px);opacity:0}}
 .trush{position:absolute;top:6px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;font-weight:800;font-size:11px;border-radius:99px;padding:4px 12px;animation:pulse 1s infinite}
 @keyframes pulse{50%{transform:translateX(-50%) scale(1.08)}}
-.ttap{width:100%;padding:14px;border:none;border-radius:16px;background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;font-weight:800;font-size:16px;cursor:pointer;box-shadow:0 10px 24px rgba(255,122,0,.4);margin-bottom:10px;font-family:inherit;transition:transform .1s}
+.tcombo{position:absolute;bottom:6px;left:10px;font-weight:800;color:var(--sun2);font-size:13px;z-index:3}
+.tlvlup{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(43,26,18,.55);z-index:9}
+.tlvlup div{background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;font-family:'Unbounded';font-weight:800;padding:16px 26px;border-radius:18px;animation:mergepop .5s}
+.tquest{background:#FFF7EE;border:2px solid #f0e2d0;border-radius:12px;padding:8px 10px;font-size:11px;font-weight:700;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tquest.done{border-color:#1D7A3D;color:#1D7A3D}
+.tquest button{border:none;background:var(--sun);color:#fff;border-radius:8px;padding:4px 8px;font-weight:800;cursor:pointer}
+.ttap{width:100%;padding:12px;border:none;border-radius:16px;background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 10px 24px rgba(255,122,0,.4);margin-bottom:10px;font-family:inherit;transition:transform .1s}
 .ttap:active{transform:scale(.96)}
 .trow{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap}
 .tup{flex:1;min-width:30%;background:#FFF7EE;border:2px solid #f0e2d0;border-radius:12px;padding:8px 4px;cursor:pointer;font-family:inherit;text-align:center}
@@ -202,8 +215,17 @@ footer{text-align:center;color:#b39b85;font-size:11px;margin-top:16px}
   <div class="m3box" style="max-width:440px">
     <div class="m3hud"><span id="tlvl">☕ Уровень 1</span><span class="tcoins">🪙 <span id="tcoins">0</span></span><button class="m3close" onclick="tclose()">✕</button></div>
     <div class="tcps" id="tcps"></div>
-    <div class="tscene"><div class="tstuff" id="tstuff"></div><div class="tqueue" id="tqueue"></div><div id="trush"></div></div>
+    <div class="tscene">
+      <div class="tsign">утро ☕</div>
+      <div class="tsteam" id="tsteam"></div>
+      <div class="tdisplay" id="tdisplay"></div>
+      <div class="tstuff" id="tstuff"></div>
+      <div class="tqueue" id="tqueue"></div>
+      <div class="tcombo" id="tcombo"></div>
+      <div id="trush"></div>
+    </div>
     <div class="border" id="tmile"></div>
+    <div id="tquests"></div>
     <div class="trow">
       <button class="tup" id="tug" onclick="tbuy('g')"><b>⚙️ Молка</b><small id="tugc"></small></button>
       <button class="tup" id="tub" onclick="tbuy('b')"><b>🧑‍🍳 Бариста</b><small id="tubc"></small></button>
@@ -530,121 +552,123 @@ function gtile(v,r,c,anim){
   el.appendChild(inn);
   el.style.width=G.cell+'px';el.style.height=G.cell+'px';
   document.getElementById('g2board').appendChild(el);
-  var t={id:++G.seq,v:v,r:r,c:c,el:el,inn:inn,merged:false};
-  gpos(t);G.tiles.push(t);return t;
-}
-function gsetv(t,v){t.v=v;t.inn.className='g2in t'+Math.min(v,7)+' merge';t.inn.innerHTML='<img class="g2e" src="'+gicon(v)+'" alt=""><span class="g2n">'+GN[Math.min(v,7)]+'</span>';}
-function gspawn(){
-  var empty=[];for(var r=0;r<4;r++)for(var c=0;c<4;c++){if(!G.tiles.some(function(t){return t.r===r&&t.c===c;}))empty.push([r,c]);}
-  if(!empty.length)return;
-  var p=empty[ri(empty.length)];
-  gtile(Math.random()<0.9?1:2,p[0],p[1],'new');
-}
-function ggrid(){var m=[[],[],[],[]];G.tiles.forEach(function(t){m[t.r][t.c]=t;});return m;}
-function gmove(dir){
-  if(G.over||G.busy)return;
-  var moved=false,merges=[];
-  for(var line=0;line<4;line++){
-    var arr=[];
-    for(var s=0;s<4;s++){
-      var r,c;
-      if(dir<2){r=line;c=(dir===0)?s:3-s;}else{c=line;r=(dir===2)?s:3-s;}
-      var t=G.tiles.find(function(x){return x.r===r&&x.c===c;});
-      if(t)arr.push(t);
-    }
-    var out=[],i=0;
-    while(i<arr.length){
-      var t1=arr[i];
-      if(i+1<arr.length&&arr[i+1].v===t1.v&&!t1.merged&&!arr[i+1].merged){
-        var t2=arr[i+1];t1.merged=true;t2.merged=true;
-        merges.push([t1,t2]);out.push(t1);i+=2;
-      }else{out.push(t1);i++;}
-    }
-    for(var k=0;k<out.length;k++){
-      var tt=out[k],nr,nc;
-      if(dir<2){nr=line;nc=(dir===0)?k:3-k;}else{nc=line;nr=(dir===2)?k:3-k;}
-      if(tt.r!==nr||tt.c!==nc)moved=true;
-      tt.r=nr;tt.c=nc;gpos(tt);
-    }
-  }
-  if(moved||merges.length){
-    G.busy=true;
-    merges.forEach(function(pr){pr[1].r=pr[0].r;pr[1].c=pr[0].c;gpos(pr[1]);});
-    setTimeout(function(){
-      merges.forEach(function(pr){
-        var s2=pr[0],o=pr[1];
-        o.el.remove();
-        G.tiles=G.tiles.filter(function(x){return x!==o;});
-        s2.merged=false;
-        G.score+=Math.pow(2,s2.v+1);
-        gsetv(s2,s2.v+1);
-      });
-      document.getElementById('g2score').textContent=G.score;
-      gspawn();
-      G.busy=false;
-      gsubmit();
-      if(!gcan()){G.over=true;gfinish();}
-    },140);
-  }
-}
-function gcan(){
-  if(G.tiles.length<16)return true;
-  var m=ggrid();
-  for(var r=0;r<4;r++)for(var c=0;c<4;c++){
-    var t=m[r][c];
-    if(c<3&&m[r][c+1]&&m[r][c+1].v===t.v)return true;
-    if(r<3&&m[r+1][c]&&m[r+1][c].v===t.v)return true;
-  }
-  return false;
-}
-function gbest(){return G.tiles.length?Math.max.apply(null,G.tiles.map(function(t){return t.v;})):0;}
-function gsubmit(){
-  var b=gbest();if(b<=G.sub)return;G.sub=b;
-  fetch('/api/app/g2048',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok,best:b})})
-  .then(function(r){return r.json();})
-  .then(function(d){if(d&&d.granted>0){document.getElementById('g2res').textContent='🎉 '+GN[b]+'! +'+d.granted+' баллов';document.getElementById('pts').innerHTML=d.balance+' <small>баллов</small>';loadLeader();}});
-}
-function gfinish(){
-  document.getElementById('g2res').textContent='💥 Игра окончена! Счёт: '+G.score;
-  document.getElementById('g2last').textContent='Последний счёт: '+G.score;
-  fetch('/api/app/g2048',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok,best:gbest()})}).then(function(){loadLeader();});
-}
-function g2start(){
-  var bd=document.getElementById('g2board');
-  bd.innerHTML='';G.tiles=[];G.score=0;G.sub=0;G.over=false;G.busy=false;
-  for(var r=0;r<4;r++)for(var c=0;c<4;c++){var sl=document.createElement('div');sl.className='g2slot';bd.appendChild(sl);}
-  document.getElementById('g2res').textContent='';
-  document.getElementById('g2score').textContent='0';
-  document.getElementById('g2overlay').style.display='flex';
-  gmetrics();gspawn();gspawn();
-}
-function g2close(){document.getElementById('g2overlay').style.display='none';loadLeader();}
-window.addEventListener('resize',function(){if(document.getElementById('g2overlay').style.display==='flex')gmetrics();});
-(function(){
-  var sx=0,sy=0;
-  document.addEventListener('touchstart',function(e){if(document.getElementById('g2overlay').style.display==='flex'){sx=e.touches[0].clientX;sy=e.touches[0].clientY;}},{passive:true});
-  document.addEventListener('touchend',function(e){if(document.getElementById('g2overlay').style.display!=='flex')return;var dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;if(Math.abs(dx)>Math.abs(dy))gmove(dx>0?1:0);else gmove(dy>0?3:2);},{passive:true});
-  document.addEventListener('keydown',function(e){if(document.getElementById('g2overlay').style.display!=='flex')return;if(e.key==='ArrowLeft'){e.preventDefault();gmove(0);}if(e.key==='ArrowRight'){e.preventDefault();gmove(1);}if(e.key==='ArrowUp'){e.preventDefault();gmove(2);}if(e.key==='ArrowDown'){e.preventDefault();gmove(3);}});
-})();
-var T={c:0,g:0,b:0,m:0,d:0,mk:0,served:0,tid:null,loaded:false,q:[],spawn:0,bar:0,rush:0,nextRush:60,ach:{}};
+var T={c:0,g:0,b:0,m:0,d:0,mk:0,served:0,earned:0,tid:null,loaded:false,q:[],spawn:0,bar:0,rush:0,nextRush:60,ach:{},combo:0,lastS:0,prevL:1};
 var TFACES=['\uD83D\uDC69','\uD83D\uDC68','\uD83E\uDDD3','\uD83D\uDC75','\uD83D\uDC66','\uD83D\uDC67','\uD83E\uDDD4'];
 function tmult(){return (1+0.25*T.m)*(1+0.15*T.mk)*(T.rush>0?2:1);}
 function ttapv(){return Math.round((1+T.g*2)*tmult());}
 function tcps(){return T.b*(1+T.g)*(1+0.25*T.m);}
+function tlevel(){return 1+T.g+T.b+T.m+T.d+T.mk;}
 function tcost(k){var b2={g:[50,1.6],b:[100,1.7],m:[200,1.8],d:[80,1.65],mk:[120,1.7]};var v=b2[k];return Math.round(v[0]*Math.pow(v[1],T[k]));}
 function tspawnInt(){return Math.max(2.5,(8-T.mk-T.d*0.5))/(T.rush>0?3:1);}
 function ttoast(s){document.getElementById('tres').textContent=s;}
+function tdrink(){
+  var L=tlevel(),r=Math.random();
+  if(L>=9&&r<0.15)return['\uD83C\uDF61',3];
+  if(L>=6&&r<0.35)return['\uD83C\uDF79',2.5];
+  if(L>=3&&r<0.6)return['✨',2];
+  return['☕',1];
+}
+var TQDEF=[['Обслужи 15 гостей',15,'s',100],['Заработай 400 🪙',400,'e',150],['Купи 2 улучшения',2,'b',120]];
+function tqget(){var d=new Date().toDateString();var q=null;try{q=JSON.parse(localStorage.getItem('tyq')||'null');}catch(e){}
+  if(!q||q.d!==d){q={d:d,s:0,e:0,b:0,c:[0,0,0]};localStorage.setItem('tyq',JSON.stringify(q));}
+  return q;}
+function tqadd(k,n){var q=tqget();q[k]+=n;localStorage.setItem('tyq',JSON.stringify(q));tqrender();}
+function tqclaim(i){var q=tqget();var def=TQDEF[i];if(q.c[i]||q[def[2]]<def[1])return;q.c[i]=1;T.c+=def[3];localStorage.setItem('tyq',JSON.stringify(q));ttoast('✅ +'+def[3]+' 🪙 за квест!');trender();tqrender();}
+function tqrender(){
+  var q=tqget();
+  document.getElementById('tquests').innerHTML=TQDEF.map(function(def,i){
+    var v=Math.min(q[def[2]],def[1]);var done=q.c[i];
+    return '<div class="tquest'+(done?' done':'')+'"><span>'+def[0]+' · '+v+'/'+def[1]+'</span>'+(done?'✅':(v>=def[1]?'<button onclick="tqclaim('+i+')">🎁</button>':''))+'</div>';
+  }).join('');
+}
 function topen(){
   fetch('/api/app/tycoon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok,get:1})})
   .then(function(r){return r.json();}).then(function(d){
-    var s=d.state;T.c=s.c;T.g=s.g;T.b=s.b;T.m=s.m;T.d=s.d||0;T.mk=s.mk||0;T.served=s.served||0;
+    var s=d.state;T.c=s.c;T.g=s.g;T.b=s.b;T.m=s.m;T.d=s.d||0;T.mk=s.mk||0;T.served=s.served||0;T.earned=0;
+    T.prevL=tlevel();
     var off=Math.floor(tcps()*Math.min(8*3600,(Date.now()/1000-s.t)));
     if(off>0){T.c+=off;ttoast('😴 Пока тебя не было: +'+off+' 🪙');}
     document.getElementById('toverlay').style.display='flex';
-    T.loaded=true;T.q=[];T.spawn=1.5;T.nextRush=45+Math.random()*45;
-    document.getElementById('tqueue').innerHTML='';document.getElementById('trush').innerHTML='';
-    trender();tstuff();
+    T.loaded=true;T.q=[];T.spawn=1.5;T.nextRush=45+Math.random()*45;T.combo=0;
+    document.getElementById('tqueue').innerHTML='';document.getElementById('trush').innerHTML='';document.getElementById('tcombo').textContent='';
+    trender();tstuff();tqrender();
     clearInterval(T.tid);T.tid=setInterval(ttick,250);
+  });
+}
+function tstuff(){
+  var h='';
+  if(T.g>0)h+='<span>⚙️<i>'+T.g+'</i></span>';
+  if(T.m>0)h+='<span>☕<i>'+T.m+'</i></span>';
+  if(T.b>0)h+='<span>\uD83E\uDDD1\u200D\uD83C\uDF73<i>'+T.b+'</i></span>';
+  if(T.d>0)h+='<span>\uD83E\uDEB4<i>'+T.d+'</i></span>';
+  if(T.mk>0)h+='<span>\uD83D\uDCE3<i>'+T.mk+'</i></span>';
+  document.getElementById('tstuff').innerHTML=h||'<span style="opacity:.4">пусто…</span>';
+  document.getElementById('tsteam').className='tsteam'+(T.m>0?' on':'');
+  document.getElementById('tsteam').textContent='♨️';
+  document.getElementById('tdisplay').textContent=T.d>0?'\uD83C\uDF70\uD83E\uDDC1'+(tlevel()>=9?'\uD83C\uDF61':''):'';
+}
+function tspawnCust(){
+  if(T.q.length>=4)return;
+  var vip=Math.random()<0.1;
+  var cu={f:TFACES[ri(TFACES.length)],x:6+T.q.length*22+Math.random()*6,pat:vip?8:12+T.d*3,vip:vip,dr:tdrink(),el:null};
+  var el=document.createElement('div');el.className='tcust'+(vip?' vip':'');el.style.left=cu.x+'%';
+  el.innerHTML='<em>'+cu.dr[0]+(vip?' \uD83D\uDC51':'')+'</em>'+cu.f;
+  el.onclick=function(){tserve(cu,true);};
+  document.getElementById('tqueue').appendChild(el);cu.el=el;T.q.push(cu);
+}
+function tserve(cu,byTap){
+  var i=T.q.indexOf(cu);if(i<0)return;T.q.splice(i,1);
+  var now=Date.now();
+  T.combo=(now-T.lastS<3000)?Math.min(T.combo+1,5):0;T.lastS=now;
+  var crit=(T.g>=5&&Math.random()<0.1)?5:1;
+  var v=Math.round(ttapv()*cu.dr[1]*(cu.vip?3:1)*(1+T.combo*0.1)*(byTap?1:0.8)*crit);
+  T.c+=v;T.served++;T.earned+=v;
+  cu.el.classList.add('served');cu.el.onclick=null;(function(el){setTimeout(function(){el.remove();},500);})(cu.el);
+  var fl=document.createElement('div');fl.className='tfloat';fl.style.left=cu.x+'%';fl.style.bottom='80px';
+  fl.textContent='+'+v+(crit>1?' КРИТ!':'')+(T.combo>1?' 🔥':'');
+  document.getElementById('tqueue').appendChild(fl);setTimeout(function(){fl.remove();},1000);
+  document.getElementById('tcombo').textContent=T.combo>1?('🔥 комбо ×'+(T.combo+1)):'';
+  tqadd('s',1);tqadd('e',v);
+  tcheckAch();trender();
+}
+function tcheckAch(){
+  var A=[[10,50],[50,200],[100,500],[250,1500]];
+  for(var i=0;i<A.length;i++){if(T.served>=A[i][0]&&!T.ach[A[i][0]]){T.ach[A[i][0]]=1;T.c+=A[i][1];ttoast('🏅 '+A[i][0]+' гостей! +'+A[i][1]+' 🪙');}}
+}
+function ttick(){
+  T.c+=tcps()/4;
+  T.spawn-=0.25;if(T.spawn<=0){T.spawn=tspawnInt();tspawnCust();}
+  for(var i=T.q.length-1;i>=0;i--){var cu=T.q[i];cu.pat-=0.25;
+    if(cu.pat<=0){T.q.splice(i,1);cu.el.classList.add('angry');(function(el){setTimeout(function(){el.remove();},500);})(cu.el);}}
+  if(T.b>0){T.bar-=0.25;if(T.bar<=0){T.bar=Math.max(1.2,5-T.b*0.5);if(T.q.length)tserve(T.q[0],false);}}
+  T.nextRush-=0.25;
+  if(T.rush>0){T.rush-=0.25;if(T.rush<=0)document.getElementById('trush').innerHTML='';}
+  else if(T.nextRush<=0){T.rush=20;T.nextRush=60+Math.random()*60;document.getElementById('trush').innerHTML='<div class="trush">🔥 Час пик! ×2</div>';}
+  trender();
+}
+function trender(){
+  document.getElementById('tcoins').textContent=Math.floor(T.c);
+  document.getElementById('tcps').textContent='офлайн +'+tcps().toFixed(1)+' 🪙/сек · обслужено: '+T.served;
+  var ids={g:'tugc',b:'tubc',m:'tumc',d:'tudc',mk:'tumkc'},dis={g:'tug',b:'tub',m:'tum',d:'tud',mk:'tumk'};
+  ['g','b','m','d','mk'].forEach(function(k){document.getElementById(ids[k]).textContent='ур.'+T[k]+' · '+tcost(k)+' 🪙';document.getElementById(dis[k]).disabled=T.c<tcost(k);});
+  var L=tlevel();
+  document.getElementById('tlvl').textContent='☕ Уровень '+L;
+  document.getElementById('tmile').textContent=L>=12?'🏆 Империя утра!':L>=9?'🍡 Моти в меню!':L>=6?'🍹 Лимонадный бар!':L>=3?'✨ Авторский кофе!':'👉 Строим кофейню…';
+}
+function tbuy(k){var c=tcost(k);if(T.c<c)return;T.c-=c;T[k]++;
+  var L=tlevel();
+  if(L>T.prevL){var ov=document.createElement('div');ov.className='tlvlup';ov.innerHTML='<div>☀️ Уровень '+L+'!</div>';document.getElementById('toverlay').appendChild(ov);setTimeout(function(){ov.remove();},1300);}
+  T.prevL=L;
+  tqadd('b',1);tstuff();trender();tsave();}
+function tsave(){fetch('/api/app/tycoon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok,save:{c:Math.floor(T.c),g:T.g,b:T.b,m:T.m,d:T.d,mk:T.mk,served:T.served}})});}
+function texch(){
+  fetch('/api/app/tycoon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok,exchange:1})})
+  .then(function(r){if(!r.ok)throw 0;return r.json();})
+  .then(function(d){T.c=d.state.c;trender();ttoast('✅ +'+d.granted+' баллов!');document.getElementById('pts').innerHTML=d.balance+' <small>баллов</small>';loadLeader();})
+  .catch(function(){ttoast('Нужно 500 🪙!');});
+}
+function tclose(){clearInterval(T.tid);tsave();document.getElementById('toverlay').style.display='none';}
+setInterval(function(){if(T.loaded&&document.getElementById('toverlay').style.display==='flex')tsave();},5000);
   });
 }
 function tstuff(){
