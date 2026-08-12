@@ -2197,6 +2197,27 @@ async def app_leader(request: Request):
             u = c2.execute("SELECT full_name FROM users WHERE id=?", (int(uidn),)).fetchone()
         out.append({"name": (u["full_name"] or "гость") if u else "гость", "pts": r["v"]})
     return {"ok": True, "rows": out}
+G2048_REWARDS = {4: 3, 5: 6, 6: 10, 7: 15}
+
+@app.post("/api/app/g2048")
+async def app_g2048(request: Request):
+    try: d = await request.json()
+    except Exception: d = {}
+    uid = app_uid(request, d)
+    if not uid: raise HTTPException(401, "Открой приложение из бота")
+    best = max(0, min(7, int(d.get("best", 0) or 0)))
+    now = datetime.now()
+    key = f"g2048_{uid}_{now.strftime('%Y-%m-%d')}"
+    done = int(kv_get(key, "0") or 0)
+    want = 0
+    for lvl in sorted(G2048_REWARDS):
+        if best >= lvl: want = G2048_REWARDS[lvl]
+    grant = max(0, want - done)
+    granted = 0
+    if grant > 0:
+        granted = game_grant(ensure_user(uid)["id"], grant, "☕ 2048")
+        kv_set(key, str(done + granted))
+    return {"ok": True, "granted": granted, "balance": balance(ensure_user(uid)["id"])}
 def make_table_qr():
     try:
         me = http.get(f"{API}/me", headers=H, timeout=10).json()
