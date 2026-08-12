@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Утро — карта гостя</title>
+<link rel="icon" type="image/png" href="/assets/logo.png">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/manrope@latest/cyrillic-400-normal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/manrope@latest/cyrillic-800-normal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/unbounded@latest/cyrillic-800-normal.css">
+<style>
+:root{--ink:#2B1A12;--sun:#FF7A00;--sun2:#FF9E3D}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Manrope',system-ui,sans-serif;background:linear-gradient(180deg,#FFF9F2,#FFEFD9);color:var(--ink);min-height:100vh;padding:16px;max-width:520px;margin:0 auto}
+header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+header img{width:40px;height:40px;border-radius:50%}
+header b{font-family:'Unbounded';font-weight:800;letter-spacing:.18em;text-transform:lowercase;font-size:16px}
+.card{background:linear-gradient(135deg,var(--ink),#4A2E1D);color:#fff;border-radius:24px;padding:22px;box-shadow:0 20px 40px rgba(43,26,18,.25);margin-bottom:14px;position:relative;overflow:hidden}
+.card:after{content:"☀️";position:absolute;right:-14px;top:-14px;font-size:90px;opacity:.15}
+.lbl{color:#c9b39e;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.pts{font-family:'Unbounded';font-size:38px;font-weight:800;margin:6px 0}
+.pts small{font-size:15px;color:var(--sun2)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.chip{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.15);padding:6px 12px;border-radius:99px;font-size:12px;font-weight:700}
+.btnqr{margin-top:14px;width:100%;padding:12px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;font-weight:800;font-size:15px;cursor:pointer}
+.qrbox{display:none;margin-top:14px;background:#fff;border-radius:16px;padding:14px;text-align:center;color:var(--ink)}
+.qrbox img{width:180px;height:180px}
+.game{background:#fff;border-radius:24px;padding:22px;box-shadow:0 10px 30px rgba(43,26,18,.08);text-align:center}
+.game h2{font-family:'Unbounded';font-size:18px;margin-bottom:4px}
+.game p{color:#8a7666;font-size:13px;margin-bottom:16px}
+.wheelwrap{position:relative;width:260px;height:260px;margin:0 auto 16px}
+.wheel{width:100%;height:100%;border-radius:50%;transition:transform 4s cubic-bezier(.15,.9,.2,1);background:conic-gradient(#FF7A00 0 45deg,#FFF3E4 45deg 90deg,#FF9E3D 90deg 135deg,#FFF3E4 135deg 180deg,#FF7A00 180deg 225deg,#FFD9AE 225deg 270deg,#FF9E3D 270deg 315deg,#FFF3E4 315deg 360deg);box-shadow:0 10px 30px rgba(255,122,0,.35), inset 0 0 0 6px #fff}
+.wl{position:absolute;inset:0;display:flex;justify-content:center;padding-top:10px;font-weight:800;font-size:14px}
+.ptr{position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:26px;z-index:2}
+.hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 4px 14px rgba(43,26,18,.2);z-index:1}
+.spin{width:100%;padding:16px;border:none;border-radius:16px;background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;font-weight:800;font-size:17px;cursor:pointer;box-shadow:0 10px 24px rgba(255,122,0,.4)}
+.spin:disabled{opacity:.5;box-shadow:none}
+.res{margin-top:12px;font-weight:800;font-size:16px;min-height:22px;color:#C2540A}
+footer{text-align:center;color:#b39b85;font-size:11px;margin-top:16px}
+</style>
+</head>
+<body>
+<header><img src="/assets/logo.png" onerror="this.style.display='none'"><b>утро</b></header>
+<div class="card">
+  <div class="lbl">Карта гостя · <span id="name"></span></div>
+  <div class="pts" id="pts">… <small>баллов</small></div>
+  <div class="chips"><span class="chip" id="lvl">…</span><span class="chip" id="vis">…</span><span class="chip" id="streak">🔥 0</span></div>
+  <button class="btnqr" onclick="toggleQr()">📳 Показать на кассе</button>
+  <div class="qrbox" id="qrbox"><div id="qr"></div><div id="cardno" style="font-weight:800;margin-top:6px"></div><small>Покажи QR или назови номер бариста</small></div>
+</div>
+<div class="game">
+  <h2>🎡 Колесо удачи</h2>
+  <p>Один спин в день: 5–25 баллов. Три дня подряд — ещё +20!</p>
+  <div class="wheelwrap">
+    <div class="ptr">🔻</div>
+    <div class="wheel" id="wheel"></div>
+    <div class="hub">☕</div>
+  </div>
+  <button class="spin" id="spinBtn" onclick="spin()">Крутить!</button>
+  <div class="res" id="res"></div>
+</div>
+<footer>Кофейня «Утро» · Ленинский, 16 · с любовью 🧡</footer>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script>
+var SECT=[5,5,10,5,15,5,10,25];
+var COLS=['#fff','#2B1A12','#fff','#2B1A12','#fff','#2B1A12','#fff','#2B1A12'];
+(function(){var w=document.getElementById('wheel');SECT.forEach(function(v,i){var d=document.createElement('div');d.className='wl';d.style.transform='rotate('+(i*45+22.5)+'deg)';d.style.color=COLS[i];d.textContent=v;w.appendChild(d);});})();
+var tok=null;
+(function(){var p=new URLSearchParams(location.search);if(p.get('t')){localStorage.setItem('app_token',p.get('t'));}tok=localStorage.getItem('app_token');})();
+var ME=null;
+async function api(path){return fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok})});}
+async function load(){
+  if(!tok){document.getElementById('res').textContent='Открой приложение из бота MAX';return;}
+  var r=await api('/api/app/me');
+  if(r.status===401){document.getElementById('res').textContent='Ссылка устарела — открой заново из бота';return;}
+  ME=await r.json();
+  document.getElementById('name').textContent=ME.name;
+  document.getElementById('pts').innerHTML=ME.points+' <small>баллов</small>';
+  document.getElementById('lvl').textContent=ME.level+' · '+ME.pct+'%';
+  document.getElementById('vis').textContent='☕ '+ME.visits;
+  document.getElementById('streak').textContent='🔥 '+ME.streak+' дн. подряд';
+  document.getElementById('cardno').textContent=ME.card;
+  if(ME.spun){var b=document.getElementById('spinBtn');b.disabled=true;b.textContent='Сегодня уже крутил — до завтра! ☀️';}
+}
+function toggleQr(){var q=document.getElementById('qrbox');if(q.style.display==='block'){q.style.display='none';return;}q.style.display='block';if(!q.dataset.done){var qr=qrcode(0,'M');qr.addData(ME.card);qr.make();document.getElementById('qr').innerHTML=qr.createImgTag(5,8);q.dataset.done=1;}}
+var spinning=false;
+async function spin(){
+  if(spinning)return;spinning=true;
+  var r=await api('/api/app/spin');
+  if(r.status===429){document.getElementById('res').textContent='Сегодня уже крутил — приходи завтра!';spinning=false;return;}
+  if(!r.ok){document.getElementById('res').textContent='Открой приложение из бота MAX';spinning=false;return;}
+  var d=await r.json();
+  var target=1800-(d.index*45+22.5)+(Math.random()*20-10);
+  document.getElementById('wheel').style.transform='rotate('+target+'deg)';
+  setTimeout(function(){
+    var txt='🎉 +'+d.points+' баллов!';
+    if(d.bonus){txt+=' 🔥 Серия '+d.streak+' дн: ещё +'+d.bonus+'!';}
+    document.getElementById('res').textContent=txt;
+    document.getElementById('pts').innerHTML=d.balance+' <small>баллов</small>';
+    document.getElementById('streak').textContent='🔥 '+d.streak+' дн. подряд';
+    var b=document.getElementById('spinBtn');b.disabled=true;b.textContent='До завтра! ☀️';
+    spinning=false;
+  },4200);
+}
+load();
+</script>
+</body>
+</html>
