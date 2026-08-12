@@ -55,9 +55,18 @@ header small{display:block;color:#8a7666;font-size:10px;font-weight:700;letter-s
 .m3box{background:#FFF7EE;border-radius:24px;padding:16px;width:100%;max-width:400px}
 .m3hud{display:flex;justify-content:space-between;align-items:center;font-weight:800;margin-bottom:10px}
 .m3close{border:none;background:#f0e2d0;border-radius:10px;padding:6px 12px;font-weight:800;cursor:pointer}
-.m3board{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
-.m3c{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:20px;background:#fff;border-radius:10px;cursor:pointer;user-select:none;border:2px solid transparent}
-.m3c.sel{border-color:var(--sun);background:#FFE8D2}
+.m3board{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;background:linear-gradient(135deg,#2B1A12,#4A2E1D);padding:10px;border-radius:18px;box-shadow:inset 0 4px 14px rgba(0,0,0,.45)}
+.m3c{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(180deg,#FFFDF8,#FFEFD9);border-radius:10px;cursor:pointer;user-select:none;border:2px solid transparent;transition:transform .12s;animation:drop .25s;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.m3c:active{transform:scale(.92)}
+.m3c.sel{border-color:var(--sun);box-shadow:0 0 0 3px rgba(255,122,0,.35);transform:scale(1.08);background:#FFE8D2}
+.m3c.boom{animation:boom .25s forwards}
+@keyframes boom{to{transform:scale(1.6);opacity:0}}
+@keyframes drop{from{transform:translateY(-16px);opacity:.2}to{transform:none;opacity:1}}
+.shake{animation:shake .3s}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+#m3combo{color:var(--sun2);font-weight:800;opacity:0}
+#m3combo.show{animation:combo .8s}
+@keyframes combo{0%{opacity:0;transform:scale(.6)}30%{opacity:1;transform:scale(1.25)}100%{opacity:0}}
 footer{text-align:center;color:#b39b85;font-size:11px;margin-top:16px}
 </style>
 </head>
@@ -125,7 +134,7 @@ footer{text-align:center;color:#b39b85;font-size:11px;margin-top:16px}
 </div>
 <div class="m3overlay" id="m3overlay">
   <div class="m3box">
-    <div class="m3hud"><span>🎯 <b id="m3score">0</b></span><span>👟 ходы: <b id="m3moves">20</b></span><button class="m3close" onclick="m3close()">✕</button></div>
+    <div class="m3hud"><span>🎯 <b id="m3score">0</b></span><span id="m3combo"></span><span>👟 ходы: <b id="m3moves">20</b></span><button class="m3close" onclick="m3close()">✕</button></div>
     <div class="m3board" id="m3board"></div>
     <div class="res" id="m3res"></div>
   </div>
@@ -292,14 +301,17 @@ function m3collapse(){
 function m3render(){
   var b=document.getElementById('m3board');b.innerHTML='';
   for(var r=0;r<8;r++)for(var c=0;c<8;c++){
-    var d=document.createElement('div');d.className='m3c'+(M3.sel&&M3.sel[0]===r&&M3.sel[1]===c?' sel':'');
+    var d=document.createElement('div');
+    d.className='m3c'+(M3.sel&&M3.sel[0]===r&&M3.sel[1]===c?' sel':'');
     d.textContent=M3.g[r][c]>=0?M3.T[M3.g[r][c]]:'';
     d.onclick=(function(rr,cc){return function(){m3tap(rr,cc);};})(r,c);
     b.appendChild(d);
   }
 }
 function m3hud(){document.getElementById('m3score').textContent=M3.score;document.getElementById('m3moves').textContent=M3.moves;}
+function m3combo(n){if(n<2)return;var el=document.getElementById('m3combo');el.textContent='Комбо ×'+n+'!';el.classList.remove('show');void el.offsetWidth;el.classList.add('show');}
 function m3swap(a,b){var t=M3.g[a[0]][a[1]];M3.g[a[0]][a[1]]=M3.g[b[0]][b[1]];M3.g[b[0]][b[1]]=t;}
+function m3shake(a,b){var bd=document.getElementById('m3board');[a,b].forEach(function(p){var el=bd.children[p[0]*8+p[1]];if(el){el.classList.add('shake');setTimeout(function(){el.classList.remove('shake');},320);}});}
 function m3tap(r,c){
   if(M3.busy||M3.moves<=0)return;
   if(M3.sel&&M3.sel[0]===r&&M3.sel[1]===c){M3.sel=null;m3render();return;}
@@ -307,17 +319,18 @@ function m3tap(r,c){
     var a=[M3.sel[0],M3.sel[1]],bb=[r,c];M3.sel=null;
     m3swap(a,bb);
     if(m3find().length){M3.moves--;m3render();m3resolve().then(function(){m3hud();if(M3.moves<=0)m3end();});}
-    else{m3swap(a,bb);m3render();}
+    else{m3swap(a,bb);m3render();m3shake(a,bb);}
   }else{M3.sel=[r,c];m3render();}
 }
 async function m3resolve(){
-  M3.busy=true;var chain=0;
+  M3.busy=true;var chain=0;var b=document.getElementById('m3board');
   while(true){
     var m=m3find();if(!m.length)break;
-    chain++;M3.score+=m.length*10*chain;
+    chain++;M3.score+=m.length*10*chain;m3combo(chain);
+    m.forEach(function(p){var el=b.children[p[0]*8+p[1]];if(el)el.classList.add('boom');});
+    await sleep(240);
     m.forEach(function(p){M3.g[p[0]][p[1]]=-1;});
-    m3render();m3hud();await sleep(180);
-    m3collapse();m3render();await sleep(180);
+    m3collapse();m3render();m3hud();await sleep(200);
   }
   M3.busy=false;
 }
