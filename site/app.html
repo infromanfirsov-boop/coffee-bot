@@ -91,6 +91,14 @@ header small{display:block;color:#8a7666;font-size:10px;font-weight:700;letter-s
 @keyframes appear{from{transform:scale(.2);opacity:0}}
 .g2in.merge{animation:mergepop .22s}
 @keyframes mergepop{45%{transform:scale(1.28)}}
+.tcoins{font-family:'Unbounded';font-size:24px;font-weight:800;text-align:center;margin:6px 0}
+.tcps{text-align:center;color:#8a7666;font-size:12px;font-weight:700;margin-bottom:10px}
+.ttap{width:100%;padding:18px;border:none;border-radius:16px;background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;font-weight:800;font-size:17px;cursor:pointer;box-shadow:0 10px 24px rgba(255,122,0,.4);margin-bottom:10px;font-family:inherit}
+.trow{display:flex;gap:8px;margin-bottom:8px}
+.tup{flex:1;background:#FFF7EE;border:2px solid #f0e2d0;border-radius:12px;padding:10px 6px;cursor:pointer;font-family:inherit;text-align:center}
+.tup b{display:block;font-size:12px}
+.tup small{color:#8a7666;font-weight:700;font-size:9px}
+.tup:disabled{opacity:.5}
 footer{text-align:center;color:#b39b85;font-size:11px;margin-top:16px}
 </style>
 </head>
@@ -165,6 +173,28 @@ footer{text-align:center;color:#b39b85;font-size:11px;margin-top:16px}
 <div class="game" style="margin-top:14px">
   <h2>🏆 Топ игроков недели</h2>
   <div id="lblist" style="text-align:left;margin-top:10px"></div>
+</div>
+<div class="game" style="margin-top:14px">
+  <h2>🏪 Кофейный магнат</h2>
+  <p>Построй кофейную империю: обслуживай гостей, прокачивай кофемолку, бариста и машину. Монеты меняй на баллы! Кофейня работает даже офлайн.</p>
+  <button class="spin" onclick="topen()">Открыть кофейню!</button>
+  <div class="res" id="tlast"></div>
+</div>
+<div class="m3overlay" id="toverlay">
+  <div class="m3box" style="max-width:420px">
+    <div class="m3hud"><span id="tlvl">☕ Уровень 1</span><button class="m3close" onclick="tclose()">✕</button></div>
+    <div class="tcoins">🪙 <span id="tcoins">0</span></div>
+    <div class="tcps" id="tcps"></div>
+    <div class="border" id="tmile"></div>
+    <button class="ttap" onclick="ttap()">☕ Обслужить гостя +<span id="ttapv">1</span></button>
+    <div class="trow">
+      <button class="tup" id="tug" onclick="tbuy('g')"><b>⚙️ Кофемолка</b><small id="tugc"></small></button>
+      <button class="tup" id="tub" onclick="tbuy('b')"><b>🧑‍🍳 Бариста</b><small id="tubc"></small></button>
+      <button class="tup" id="tum" onclick="tbuy('m')"><b>☕ Машина</b><small id="tumc"></small></button>
+    </div>
+    <button class="tup" style="width:100%" onclick="texch()"><b>🔁 Обменять 500 🪙 → 3 ⭐</b></button>
+    <div class="res" id="tres"></div>
+  </div>
 </div>
 <div class="m3overlay" id="g2overlay">
   <div class="m3box">
@@ -576,6 +606,47 @@ window.addEventListener('resize',function(){if(document.getElementById('g2overla
   document.addEventListener('touchend',function(e){if(document.getElementById('g2overlay').style.display!=='flex')return;var dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;if(Math.abs(dx)>Math.abs(dy))gmove(dx>0?1:0);else gmove(dy>0?3:2);},{passive:true});
   document.addEventListener('keydown',function(e){if(document.getElementById('g2overlay').style.display!=='flex')return;if(e.key==='ArrowLeft'){e.preventDefault();gmove(0);}if(e.key==='ArrowRight'){e.preventDefault();gmove(1);}if(e.key==='ArrowUp'){e.preventDefault();gmove(2);}if(e.key==='ArrowDown'){e.preventDefault();gmove(3);}});
 })();
+var T={c:0,g:0,b:0,m:0,tid:null,loaded:false};
+function tcps(){return T.b*(1+T.g)*(1+0.25*T.m);}
+function ttapv(){return Math.round((1+T.g*2)*(1+0.25*T.m));}
+function tcost(k){return k==='g'?Math.round(50*Math.pow(1.6,T.g)):k==='b'?Math.round(100*Math.pow(1.7,T.b)):Math.round(200*Math.pow(1.8,T.m));}
+function topen(){
+  fetch('/api/app/tycoon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok,get:1})})
+  .then(function(r){return r.json();}).then(function(d){
+    var s=d.state;T.c=s.c;T.g=s.g;T.b=s.b;T.m=s.m;
+    var off=Math.floor(tcps()*Math.min(8*3600,(Date.now()/1000-s.t)));
+    if(off>0){T.c+=off;document.getElementById('tres').textContent='😴 Пока тебя не было: +'+off+' 🪙';}
+    document.getElementById('toverlay').style.display='flex';
+    T.loaded=true;trender();
+    clearInterval(T.tid);
+    T.tid=setInterval(function(){T.c+=tcps()/4;trender();},250);
+  });
+}
+function trender(){
+  document.getElementById('tcoins').textContent=Math.floor(T.c);
+  document.getElementById('tcps').textContent='+'+tcps().toFixed(1)+' 🪙/сек · уровень '+(1+T.g+T.b+T.m);
+  document.getElementById('ttapv').textContent=ttapv();
+  document.getElementById('tugc').textContent='ур.'+T.g+' · '+tcost('g')+' 🪙';
+  document.getElementById('tubc').textContent='ур.'+T.b+' · '+tcost('b')+' 🪙';
+  document.getElementById('tumc').textContent='ур.'+T.m+' · '+tcost('m')+' 🪙';
+  document.getElementById('tug').disabled=T.c<tcost('g');
+  document.getElementById('tub').disabled=T.c<tcost('b');
+  document.getElementById('tum').disabled=T.c<tcost('m');
+  var L=1+T.g+T.b+T.m;
+  document.getElementById('tlvl').textContent='☕ Уровень '+L;
+  document.getElementById('tmile').textContent=L>=10?'🏆 Империя утра!':L>=7?'🍡 Моти в меню!':L>=5?'🍹 Лимонадный бар!':L>=3?'✨ Авторский кофе!':'👉 Строим кофейню…';
+}
+function ttap(){T.c+=ttapv();trender();}
+function tbuy(k){var c=tcost(k);if(T.c<c)return;T.c-=c;if(k==='g')T.g++;if(k==='b')T.b++;if(k==='m')T.m++;trender();tsave();}
+function tsave(){fetch('/api/app/tycoon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok,save:{c:Math.floor(T.c),g:T.g,b:T.b,m:T.m}})});}
+function texch(){
+  fetch('/api/app/tycoon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok,exchange:1})})
+  .then(function(r){if(!r.ok)throw 0;return r.json();})
+  .then(function(d){T.c=d.state.c;trender();document.getElementById('tres').textContent='✅ +'+d.granted+' баллов!';document.getElementById('pts').innerHTML=d.balance+' <small>баллов</small>';loadLeader();})
+  .catch(function(){document.getElementById('tres').textContent='Нужно 500 🪙!';});
+}
+function tclose(){clearInterval(T.tid);tsave();document.getElementById('toverlay').style.display='none';}
+setInterval(function(){if(T.loaded&&document.getElementById('toverlay').style.display==='flex')tsave();},5000);
 load(); loadQuiz(); loadLeader();
 </script>
 </body>
