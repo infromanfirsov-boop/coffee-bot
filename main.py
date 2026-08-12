@@ -1983,7 +1983,8 @@ async def app_me(request: Request):
             "level": lvl_name(u["visits_count"]), "pct": pct(u["visits_count"]),
             "visits": u["visits_count"], "card": u["card_number"],
             "spun": kv_get("spin_" + uid) == today, "streak": int(kv_get("streak_" + uid, "0") or 0),
-            "caught": kv_get("catch_" + uid) == today}
+            "caught": kv_get("catch_" + uid) == today,
+            "quiz_done": kv_get("quiz_" + uid) == today, "scratch_done": kv_get("scratch_" + uid) == today}
 
 @app.post("/api/app/spin")
 async def app_spin(request: Request):
@@ -2031,6 +2032,47 @@ async def app_catch(request: Request):
         _batch(c, u["id"], pts, "game", f"☕ Ловля стаканчиков +{pts}")
         c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
                   (u["id"], "accrual", pts, "☕ Ловля стаканчиков"))
+    return {"ok": True, "points": pts, "balance": balance(u["id"])}
+@app.post("/api/app/quiz")
+async def app_quiz(request: Request):
+    try: d = await request.json()
+    except Exception: d = {}
+    uid = app_uid(request, d)
+    if not uid: raise HTTPException(401, "Открой приложение из бота")
+    now = datetime.now()
+    today = now.strftime("%Y-%m-%d")
+    q = QUESTIONS[int(now.strftime("%j")) % len(QUESTIONS)]
+    if d.get("get"):
+        return {"ok": True, "q": q["q"], "a": q["a"], "done": kv_get("quiz_" + uid) == today}
+    if kv_get("quiz_" + uid) == today:
+        raise HTTPException(429, "Уже отвечал")
+    kv_set("quiz_" + uid, today)
+    correct = d.get("ans") == q["c"]
+    pts = 10 if correct else 2
+    u = ensure_user(uid)
+    with db() as c:
+        _batch(c, u["id"], pts, "game", f"🧠 Вопрос дня +{pts}")
+        c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
+                  (u["id"], "accrual", pts, "🧠 Вопрос дня"))
+    return {"ok": True, "correct": correct, "points": pts, "right_txt": q["a"][q["c"]], "balance": balance(u["id"])}
+
+@app.post("/api/app/scratch")
+async def app_scratch(request: Request):
+    try: d = await request.json()
+    except Exception: d = {}
+    uid = app_uid(request, d)
+    if not uid: raise HTTPException(401, "Открой приложение из бота")
+    now = datetime.now()
+    today = now.strftime("%Y-%m-%d")
+    if kv_get("scratch_" + uid) == today:
+        raise HTTPException(429, "Сегодня уже стирал")
+    kv_set("scratch_" + uid, today)
+    pts = random.choice([5, 5, 10, 10, 15, 20])
+    u = ensure_user(uid)
+    with db() as c:
+        _batch(c, u["id"], pts, "game", f"🎫 Скретч +{pts}")
+        c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
+                  (u["id"], "accrual", pts, "🎫 Скретч-карта"))
     return {"ok": True, "points": pts, "balance": balance(u["id"])}
 def make_table_qr():
     try:
