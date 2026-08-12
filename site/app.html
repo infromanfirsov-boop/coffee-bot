@@ -37,6 +37,11 @@ header small{display:block;color:#8a7666;font-size:10px;font-weight:700;letter-s
 .spin{width:100%;padding:16px;border:none;border-radius:16px;background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;font-weight:800;font-size:17px;cursor:pointer;box-shadow:0 10px 24px rgba(255,122,0,.4)}
 .spin:disabled{opacity:.5;box-shadow:none}
 .res{margin-top:12px;font-weight:800;font-size:16px;min-height:22px;color:#C2540A}
+.catcharea{position:relative;height:230px;background:#FFF3E4;border-radius:16px;overflow:hidden;border:2px dashed #FFD9AE}
+.cup{position:absolute;font-size:32px;cursor:pointer;user-select:none;animation:pop .25s;line-height:1}
+@keyframes pop{from{transform:scale(.3)}to{transform:scale(1)}}
+.catchui{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:40px;opacity:.5}
+.catchtop{position:absolute;top:8px;left:12px;right:12px;display:flex;justify-content:space-between;font-weight:800;font-size:14px;color:#C2540A;z-index:2}
 footer{text-align:center;color:#b39b85;font-size:11px;margin-top:16px}
 </style>
 </head>
@@ -60,6 +65,13 @@ footer{text-align:center;color:#b39b85;font-size:11px;margin-top:16px}
   <button class="spin" id="spinBtn" onclick="spin()">Крутить!</button>
   <div class="res" id="res"></div>
 </div>
+<div class="game" style="margin-top:14px">
+  <h2>☕ Лови стаканчики</h2>
+  <p>20 секунд тапай по стаканчикам: 2 пойманных = 1 балл (максимум 15). Раз в день!</p>
+  <div class="catcharea" id="catcharea"><div class="catchui">🎮</div></div>
+  <button class="spin" style="margin-top:12px" id="catchBtn" onclick="startCatch()">Играть!</button>
+  <div class="res" id="catchres"></div>
+</div>
 <footer>Кофейня «Утро» · Ленинский, 16 · с любовью 🧡</footer>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script>
@@ -82,6 +94,7 @@ async function load(){
   document.getElementById('streak').textContent='🔥 '+ME.streak+' дн. подряд';
   document.getElementById('cardno').textContent=ME.card;
   if(ME.spun){var b=document.getElementById('spinBtn');b.disabled=true;b.textContent='Сегодня уже крутил — до завтра! ☀️';}
+  if(ME.caught){var cb=document.getElementById('catchBtn');cb.disabled=true;cb.textContent='Сегодня уже играл!';}
 }
 function toggleQr(){var q=document.getElementById('qrbox');if(q.style.display==='block'){q.style.display='none';return;}q.style.display='block';if(!q.dataset.done){var qr=qrcode(0,'M');qr.addData(ME.card);qr.make();document.getElementById('qr').innerHTML=qr.createImgTag(5,8);q.dataset.done=1;}}
 var spinning=false;
@@ -102,6 +115,35 @@ async function spin(){
     var b=document.getElementById('spinBtn');b.disabled=true;b.textContent='До завтра! ☀️';
     spinning=false;
   },4200);
+}
+var catching=false;
+function startCatch(){
+  if(catching)return;
+  catching=true;
+  var area=document.getElementById('catcharea');
+  area.innerHTML='<div class="catchtop"><span>☕ <b id="cscore">0</b></span><span>⏱ <b id="ctime">20</b></span></div>';
+  var score=0,left=20;
+  document.getElementById('catchBtn').disabled=true;
+  var spawn=setInterval(function(){
+    var c=document.createElement('div');c.className='cup';c.textContent=Math.random()<0.85?'☕':'';
+    c.style.left=(5+Math.random()*82)+'%';c.style.top=(14+Math.random()*72)+'%';
+    c.onclick=function(){score++;var s=document.getElementById('cscore');if(s)s.textContent=score;c.remove();};
+    area.appendChild(c);setTimeout(function(){c.remove();},1400);
+  },650);
+  var tick=setInterval(function(){
+    left--;var el=document.getElementById('ctime');if(el)el.textContent=left;
+    if(left<=0){clearInterval(spawn);clearInterval(tick);finishCatch(score);}
+  },1000);
+}
+async function finishCatch(score){
+  var r=await fetch('/api/app/catch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok,score:score})});
+  document.getElementById('catcharea').innerHTML='<div class="catchui">😌</div>';
+  catching=false;
+  var b=document.getElementById('catchBtn');b.disabled=true;b.textContent='До завтра!';
+  if(r.status===429){document.getElementById('catchres').textContent='Сегодня уже играл!';return;}
+  var d=await r.json();
+  document.getElementById('catchres').textContent='Поймано '+score+' → +'+d.points+' баллов!'+(d.balance?' Баланс: '+d.balance:'');
+  if(d.balance){document.getElementById('pts').innerHTML=d.balance+' <small>баллов</small>';}
 }
 load();
 </script>
