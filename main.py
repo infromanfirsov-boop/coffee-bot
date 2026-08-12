@@ -709,7 +709,7 @@ def menu(uid, name):
     if is_priv(uid):
         b += [[cb(RECEIPT + " Чек", "checkflow"), cb("🧾 Гость", "walkflow")],
               [cb(SEARCH + " Поиск", "show_search"), cb(USERS + " Клиенты", "show_clients")],
-              [cb(PLUS + " Гостю карта", "newflow")]]
+              [cb(PLUS + " Гостю карта", "newflow"), cb("🎁 Колесо удачи", "openapp")]]
         if uid in ADMINS:
             b += [[cb(CHART2 + " Топ", "show_top"), cb(CHART2 + " ABC", "show_abc"), cb(CHART2 + " RFM", "show_rfm")],
                   [cb(BULB + " Инсайты", "show_insights"), cb(EXPORT + " CSV", "export_csv"), cb(EXPORT + " Файлы", "export_files")],
