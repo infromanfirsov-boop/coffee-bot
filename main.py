@@ -1082,6 +1082,7 @@ def apply_cashback(target, amount, items=None):
     pts = int(amount * rate / 100)
     rid = uuid.uuid4().hex[:8]
     inv_uid = None
+    defer_kv, defer_msg = [], []
     with db() as c:
         _batch(c, target["id"], pts, "cashback", f"{MONEY} Кешбэк за чек {amount:.0f} р.")
         c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
@@ -1098,24 +1099,24 @@ def apply_cashback(target, amount, items=None):
         wk = now2.strftime("%G-W%V")
         hist = [x for x in (kv_get(f"wch_{target['id']}") or "").split(",") if x]
         hist.append(now2.strftime("%Y-%m-%d"))
-        kv_set(f"wch_{target['id']}", ",".join(hist[-12:]))
+        defer_kv.append((f"wch_{target['id']}", ",".join(hist[-12:])))
         hs = set(hist)
         cut7 = (now2 - timedelta(days=7)).strftime("%Y-%m-%d")
         if kv_get(f"wchd_{target['id']}") != wk and len(set(x for x in hist if x >= cut7)) >= 3:
-            kv_set(f"wchd_{target['id']}", wk)
+            defer_kv.append((f"wchd_{target['id']}", wk))
             _batch(c, target["id"], CHALLENGE_PTS, "challenge", "🏆 Челлендж недели: 3 визита")
             c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
                       (target["id"], "accrual", CHALLENGE_PTS, "🏆 Челлендж недели"))
-            send_text(int(target["max_user_id"]), f"{PARTY} Челлендж недели выполнен: 3 визита за 7 дней! +{CHALLENGE_PTS} баллов {MEDAL}")
+            defer_msg.append((int(target["max_user_id"]), f"{PARTY} Челлендж недели выполнен: 3 визита за 7 дней! +{CHALLENGE_PTS} баллов {MEDAL}"))
         t0, y1, y2 = now2.strftime("%Y-%m-%d"), (now2 - timedelta(days=1)).strftime("%Y-%m-%d"), (now2 - timedelta(days=2)).strftime("%Y-%m-%d")
         if t0 in hs and y1 in hs and y2 in hs:
             la = kv_get(f"vstk_{target['id']}") or ""
             if not la or la < (now2 - timedelta(days=7)).strftime("%Y-%m-%d"):
-                kv_set(f"vstk_{target['id']}", t0)
+                defer_kv.append((f"vstk_{target['id']}", t0))
                 _batch(c, target["id"], STREAK_PTS, "streak", "🔥 3 дня подряд")
                 c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
                           (target["id"], "accrual", STREAK_PTS, "🔥 3 дня подряд"))
-                send_text(int(target["max_user_id"]), f"{PARTY} Три дня подряд! +{STREAK_PTS} баллов 🔥")
+                defer_msg.append((int(target["max_user_id"]), f"{PARTY} Три дня подряд! +{STREAK_PTS} баллов 🔥"))
         if items:
             ex = set(x for x in (kv_get(f"expl_{target['id']}") or "").split(",") if x)
             grew = False
@@ -1123,13 +1124,13 @@ def apply_cashback(target, amount, items=None):
                 if "автор" in it and it not in ex:
                     ex.add(it); grew = True
             if grew:
-                kv_set(f"expl_{target['id']}", ",".join(sorted(ex)))
+                defer_kv.append((f"expl_{target['id']}", ",".join(sorted(ex))))
             if len(ex) >= 5 and kv_get(f"expld_{target['id']}") != "1":
-                kv_set(f"expld_{target['id']}", "1")
+                defer_kv.append((f"expld_{target['id']}", "1"))
                 _batch(c, target["id"], EXPLORER_PTS, "explorer", "🗺 Исследователь меню: 5 авторских")
                 c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
                           (target["id"], "accrual", EXPLORER_PTS, "🗺 Исследователь меню"))
-                send_text(int(target["max_user_id"]), f"{PARTY} Ты попробовал 5 авторских напитков! +{EXPLORER_PTS} баллов 🗺")
+                defer_msg.append((int(target["max_user_id"]), f"{PARTY} Ты попробовал 5 авторских напитков! +{EXPLORER_PTS} баллов 🗺"))
         ref = c.execute("SELECT referred_by,ref_done FROM users WHERE id=?", (target["id"],)).fetchone()
         if ref and ref["referred_by"] and not ref["ref_done"]:
             inv_row = c.execute("SELECT id,max_user_id FROM users WHERE card_number=?", (ref["referred_by"],)).fetchone()
@@ -1144,6 +1145,8 @@ def apply_cashback(target, amount, items=None):
         up = nl != u2["level"]
         if up:
             c.execute("UPDATE users SET level=? WHERE id=?", (nl, target["id"]))
+    for k, v in defer_kv: kv_set(k, v)
+    for um, txt in defer_msg: send_text(um, txt)
     if inv_uid:
         send_text(int(inv_uid), f"{PARTY} Ваш друг совершил первый визит! +{REF_BONUS} баллов {HAND}")
     v = u2["visits_count"]
