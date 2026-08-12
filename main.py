@@ -2081,11 +2081,8 @@ async def app_spin(request: Request):
     pts = SPIN_SECTORS[idx]
     bonus = 5 if streak % 3 == 0 else 0
     u = ensure_user(uid)
-    with db() as c:
-        _batch(c, u["id"], pts + bonus, "game", f"🎁 Колесо удачи +{pts}" + (f" и серия 🔥 +{bonus}" if bonus else ""))
-        c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
-                  (u["id"], "accrual", pts + bonus, "🎁 Колесо удачи"))
-    return {"ok": True, "index": idx, "points": pts, "bonus": bonus, "streak": streak, "balance": balance(u["id"])}
+    granted = game_grant(u["id"], pts + bonus, "🎁 Колесо удачи")
+    return {"ok": True, "index": idx, "points": granted, "bonus": bonus, "streak": streak, "balance": balance(u["id"])}
 @app.post("/api/app/catch")
 async def app_catch(request: Request):
     try: d = await request.json()
@@ -2099,15 +2096,12 @@ async def app_catch(request: Request):
     if kv_get("catch_" + uid) == today:
         raise HTTPException(429, "Сегодня уже играл")
     kv_set("catch_" + uid, today)
-    pts = min(10, score // 3)
+    pts = min(5, score // 4)
     if pts <= 0:
         return {"ok": True, "points": 0, "balance": None}
     u = ensure_user(uid)
-    with db() as c:
-        _batch(c, u["id"], pts, "game", f"☕ Ловля стаканчиков +{pts}")
-        c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
-                  (u["id"], "accrual", pts, "☕ Ловля стаканчиков"))
-    return {"ok": True, "points": pts, "balance": balance(u["id"])}
+    granted = game_grant(u["id"], pts, "☕ Ловля стаканчиков")
+    return {"ok": True, "points": granted, "balance": balance(u["id"])}
 @app.post("/api/app/quiz")
 async def app_quiz(request: Request):
     try: d = await request.json()
@@ -2123,13 +2117,10 @@ async def app_quiz(request: Request):
         raise HTTPException(429, "Уже отвечал")
     kv_set("quiz_" + uid, today)
     correct = d.get("ans") == q["c"]
-    pts = 5 if correct else 0
+    pts = 3 if correct else 0
     u = ensure_user(uid)
-    with db() as c:
-        _batch(c, u["id"], pts, "game", f"🧠 Вопрос дня +{pts}")
-        c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
-                  (u["id"], "accrual", pts, "🧠 Вопрос дня"))
-    return {"ok": True, "correct": correct, "points": pts, "right_txt": q["a"][q["c"]], "balance": balance(u["id"])}
+    granted = game_grant(u["id"], pts, "🧠 Вопрос дня")
+    return {"ok": True, "correct": correct, "points": granted, "right_txt": q["a"][q["c"]], "balance": balance(u["id"])}
 
 @app.post("/api/app/scratch")
 async def app_scratch(request: Request):
@@ -2142,13 +2133,10 @@ async def app_scratch(request: Request):
     if kv_get("scratch_" + uid) == today:
         raise HTTPException(429, "Сегодня уже стирал")
     kv_set("scratch_" + uid, today)
-    pts = random.choice([0, 0, 5, 5, 10, 15])
+    pts = random.choice([0, 0, 5, 5, 5, 10])
     u = ensure_user(uid)
-    with db() as c:
-        _batch(c, u["id"], pts, "game", f"🎫 Скретч +{pts}")
-        c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
-                  (u["id"], "accrual", pts, "🎫 Скретч-карта"))
-    return {"ok": True, "points": pts, "balance": balance(u["id"])}
+    granted = game_grant(u["id"], pts, "🎫 Скретч-карта")
+    return {"ok": True, "points": granted, "balance": balance(u["id"])}
 @app.post("/api/app/bet")
 async def app_bet(request: Request):
     try: d = await request.json()
@@ -2172,10 +2160,7 @@ async def app_bet(request: Request):
         if not ok: raise HTTPException(402, "Не хватает баллов")
     prize = int(bet * 2.5) if win else 0
     if win:
-        with db() as c:
-            _batch(c, u["id"], prize, "game", f"🎰 Выигрыш +{prize}")
-            c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
-                      (u["id"], "accrual", prize, "🎰 Выигрыш"))
+        prize = game_grant(u["id"], prize, "🎰 Выигрыш")
     return {"ok": True, "win": win, "win_idx": win_idx, "bet": bet, "prize": prize,
             "balance": balance(u["id"]), "left": 5 - (cnt + 1)}
 @app.post("/api/app/match3")
@@ -2190,15 +2175,12 @@ async def app_match3(request: Request):
     if kv_get("m3_" + uid) == today:
         raise HTTPException(429, "Награда за сегодня уже получена")
     kv_set("m3_" + uid, today)
-    pts = min(12, score // 250)
+    pts = min(8, score // 300)
     if pts <= 0:
         return {"ok": True, "points": 0, "balance": balance(ensure_user(uid)["id"])}
     u = ensure_user(uid)
-    with db() as c:
-        _batch(c, u["id"], pts, "game", f"🧩 3 в ряд +{pts}")
-        c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
-                  (u["id"], "accrual", pts, "🧩 3 в ряд"))
-    return {"ok": True, "points": pts, "balance": balance(u["id"])}
+    granted = game_grant(u["id"], pts, "🧩 3 в ряд")
+    return {"ok": True, "points": granted, "balance": balance(u["id"])}
 @app.post("/api/app/leader")
 async def app_leader(request: Request):
     try: d = await request.json()
