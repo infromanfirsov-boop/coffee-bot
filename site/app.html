@@ -91,13 +91,31 @@ header small{display:block;color:#8a7666;font-size:10px;font-weight:700;letter-s
 @keyframes appear{from{transform:scale(.2);opacity:0}}
 .g2in.merge{animation:mergepop .22s}
 @keyframes mergepop{45%{transform:scale(1.28)}}
-.tcoins{font-family:'Unbounded';font-size:24px;font-weight:800;text-align:center;margin:6px 0}
-.tcps{text-align:center;color:#8a7666;font-size:12px;font-weight:700;margin-bottom:10px}
-.ttap{width:100%;padding:18px;border:none;border-radius:16px;background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;font-weight:800;font-size:17px;cursor:pointer;box-shadow:0 10px 24px rgba(255,122,0,.4);margin-bottom:10px;font-family:inherit}
-.trow{display:flex;gap:8px;margin-bottom:8px}
-.tup{flex:1;background:#FFF7EE;border:2px solid #f0e2d0;border-radius:12px;padding:10px 6px;cursor:pointer;font-family:inherit;text-align:center}
-.tup b{display:block;font-size:12px}
-.tup small{color:#8a7666;font-weight:700;font-size:9px}
+.tcoins{font-family:'Unbounded';font-size:20px;font-weight:800}
+.tcps{text-align:center;color:#8a7666;font-size:11px;font-weight:700;margin-bottom:8px}
+.tscene{position:relative;height:150px;border-radius:16px;overflow:hidden;margin-bottom:10px;background:linear-gradient(180deg,#FFEFD9 0 62%,#8a5a33 62% 78%,#5a3a1e 78%)}
+.tscene:after{content:"🪟";position:absolute;top:8px;left:12px;font-size:34px;opacity:.8}
+.tstuff{position:absolute;top:6px;right:10px;display:flex;gap:6px;font-size:22px;z-index:2}
+.tstuff span{position:relative}
+.tstuff i{position:absolute;bottom:-6px;right:-6px;background:#fff;border-radius:99px;font-size:8px;font-style:normal;font-weight:800;padding:1px 4px;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.tqueue{position:absolute;inset:0}
+.tcust{position:absolute;bottom:44px;font-size:32px;cursor:pointer;animation:walkin .7s ease-out;user-select:none}
+.tcust em{position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-style:normal;font-size:12px;background:#fff;border-radius:99px;padding:1px 5px;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.tcust.served{animation:served .5s forwards}
+.tcust.angry{animation:angry .5s forwards}
+@keyframes walkin{from{transform:translateX(140px);opacity:0}}
+@keyframes served{to{transform:translateY(-36px) scale(1.25);opacity:0}}
+@keyframes angry{to{transform:translateX(140px);opacity:0}}
+.tfloat{position:absolute;font-weight:800;color:#1D7A3D;animation:floatup 1s forwards;z-index:5}
+@keyframes floatup{to{transform:translateY(-44px);opacity:0}}
+.trush{position:absolute;top:6px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;font-weight:800;font-size:11px;border-radius:99px;padding:4px 12px;animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:translateX(-50%) scale(1.08)}}
+.ttap{width:100%;padding:14px;border:none;border-radius:16px;background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;font-weight:800;font-size:16px;cursor:pointer;box-shadow:0 10px 24px rgba(255,122,0,.4);margin-bottom:10px;font-family:inherit;transition:transform .1s}
+.ttap:active{transform:scale(.96)}
+.trow{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+.tup{flex:1;min-width:30%;background:#FFF7EE;border:2px solid #f0e2d0;border-radius:12px;padding:8px 4px;cursor:pointer;font-family:inherit;text-align:center}
+.tup b{display:block;font-size:11px}
+.tup small{color:#8a7666;font-weight:700;font-size:8px}
 .tup:disabled{opacity:.5}
 footer{text-align:center;color:#b39b85;font-size:11px;margin-top:16px}
 </style>
@@ -181,20 +199,22 @@ footer{text-align:center;color:#b39b85;font-size:11px;margin-top:16px}
   <div class="res" id="tlast"></div>
 </div>
 <div class="m3overlay" id="toverlay">
-  <div class="m3box" style="max-width:420px">
-    <div class="m3hud"><span id="tlvl">☕ Уровень 1</span><button class="m3close" onclick="tclose()">✕</button></div>
-    <div class="tcoins">🪙 <span id="tcoins">0</span></div>
+  <div class="m3box" style="max-width:440px">
+    <div class="m3hud"><span id="tlvl">☕ Уровень 1</span><span class="tcoins">🪙 <span id="tcoins">0</span></span><button class="m3close" onclick="tclose()">✕</button></div>
     <div class="tcps" id="tcps"></div>
+    <div class="tscene"><div class="tstuff" id="tstuff"></div><div class="tqueue" id="tqueue"></div><div id="trush"></div></div>
     <div class="border" id="tmile"></div>
-    <button class="ttap" onclick="ttap()">☕ Обслужить гостя +<span id="ttapv">1</span></button>
     <div class="trow">
-      <button class="tup" id="tug" onclick="tbuy('g')"><b>⚙️ Кофемолка</b><small id="tugc"></small></button>
+      <button class="tup" id="tug" onclick="tbuy('g')"><b>⚙️ Молка</b><small id="tugc"></small></button>
       <button class="tup" id="tub" onclick="tbuy('b')"><b>🧑‍🍳 Бариста</b><small id="tubc"></small></button>
       <button class="tup" id="tum" onclick="tbuy('m')"><b>☕ Машина</b><small id="tumc"></small></button>
+      <button class="tup" id="tud" onclick="tbuy('d')"><b>🪴 Декор</b><small id="tudc"></small></button>
+      <button class="tup" id="tumk" onclick="tbuy('mk')"><b>📣 Маркет</b><small id="tumkc"></small></button>
     </div>
     <button class="tup" style="width:100%" onclick="texch()"><b>🔁 Обменять 500 🪙 → 3 ⭐</b></button>
     <div class="res" id="tres"></div>
   </div>
+</div>
 </div>
 <div class="m3overlay" id="g2overlay">
   <div class="m3box">
@@ -606,44 +626,84 @@ window.addEventListener('resize',function(){if(document.getElementById('g2overla
   document.addEventListener('touchend',function(e){if(document.getElementById('g2overlay').style.display!=='flex')return;var dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;if(Math.abs(dx)>Math.abs(dy))gmove(dx>0?1:0);else gmove(dy>0?3:2);},{passive:true});
   document.addEventListener('keydown',function(e){if(document.getElementById('g2overlay').style.display!=='flex')return;if(e.key==='ArrowLeft'){e.preventDefault();gmove(0);}if(e.key==='ArrowRight'){e.preventDefault();gmove(1);}if(e.key==='ArrowUp'){e.preventDefault();gmove(2);}if(e.key==='ArrowDown'){e.preventDefault();gmove(3);}});
 })();
-var T={c:0,g:0,b:0,m:0,tid:null,loaded:false};
+var T={c:0,g:0,b:0,m:0,d:0,mk:0,served:0,tid:null,loaded:false,q:[],spawn:0,bar:0,rush:0,nextRush:60,ach:{}};
+var TFACES=['\uD83D\uDC69','\uD83D\uDC68','\uD83E\uDDD3','\uD83D\uDC75','\uD83D\uDC66','\uD83D\uDC67','\uD83E\uDDD4'];
+function tmult(){return (1+0.25*T.m)*(1+0.15*T.mk)*(T.rush>0?2:1);}
+function ttapv(){return Math.round((1+T.g*2)*tmult());}
 function tcps(){return T.b*(1+T.g)*(1+0.25*T.m);}
-function ttapv(){return Math.round((1+T.g*2)*(1+0.25*T.m));}
-function tcost(k){return k==='g'?Math.round(50*Math.pow(1.6,T.g)):k==='b'?Math.round(100*Math.pow(1.7,T.b)):Math.round(200*Math.pow(1.8,T.m));}
+function tcost(k){var b2={g:[50,1.6],b:[100,1.7],m:[200,1.8],d:[80,1.65],mk:[120,1.7]};var v=b2[k];return Math.round(v[0]*Math.pow(v[1],T[k]));}
+function tspawnInt(){return Math.max(2.5,(8-T.mk-T.d*0.5))/(T.rush>0?3:1);}
+function ttoast(s){document.getElementById('tres').textContent=s;}
 function topen(){
   fetch('/api/app/tycoon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok,get:1})})
   .then(function(r){return r.json();}).then(function(d){
-    var s=d.state;T.c=s.c;T.g=s.g;T.b=s.b;T.m=s.m;
+    var s=d.state;T.c=s.c;T.g=s.g;T.b=s.b;T.m=s.m;T.d=s.d||0;T.mk=s.mk||0;T.served=s.served||0;
     var off=Math.floor(tcps()*Math.min(8*3600,(Date.now()/1000-s.t)));
-    if(off>0){T.c+=off;document.getElementById('tres').textContent='😴 Пока тебя не было: +'+off+' 🪙';}
+    if(off>0){T.c+=off;ttoast('😴 Пока тебя не было: +'+off+' 🪙');}
     document.getElementById('toverlay').style.display='flex';
-    T.loaded=true;trender();
-    clearInterval(T.tid);
-    T.tid=setInterval(function(){T.c+=tcps()/4;trender();},250);
+    T.loaded=true;T.q=[];T.spawn=1.5;T.nextRush=45+Math.random()*45;
+    document.getElementById('tqueue').innerHTML='';document.getElementById('trush').innerHTML='';
+    trender();tstuff();
+    clearInterval(T.tid);T.tid=setInterval(ttick,250);
   });
+}
+function tstuff(){
+  var h='';
+  if(T.g>0)h+='<span>⚙️<i>'+T.g+'</i></span>';
+  if(T.m>0)h+='<span>☕<i>'+T.m+'</i></span>';
+  if(T.b>0)h+='<span>\uD83E\uDDD1\u200D\uD83C\uDF73<i>'+T.b+'</i></span>';
+  if(T.d>0)h+='<span>\uD83E\uDEB4<i>'+T.d+'</i></span>';
+  if(T.mk>0)h+='<span>\uD83D\uDCE3<i>'+T.mk+'</i></span>';
+  document.getElementById('tstuff').innerHTML=h||'<span style="opacity:.4">пусто…</span>';
+}
+function tspawnCust(){
+  if(T.q.length>=4)return;
+  var cu={f:TFACES[ri(TFACES.length)],x:6+T.q.length*22+Math.random()*6,pat:12+T.d*3,el:null};
+  var el=document.createElement('div');el.className='tcust';el.style.left=cu.x+'%';
+  el.innerHTML='<em>☕?</em>'+cu.f;
+  el.onclick=function(){tserve(cu,true);};
+  document.getElementById('tqueue').appendChild(el);cu.el=el;T.q.push(cu);
+}
+function tserve(cu,byTap){
+  var i=T.q.indexOf(cu);if(i<0)return;T.q.splice(i,1);
+  var v=Math.round(ttapv()*(byTap?1:0.8));
+  T.c+=v;T.served++;
+  cu.el.classList.add('served');cu.el.onclick=null;(function(el){setTimeout(function(){el.remove();},500);})(cu.el);
+  var fl=document.createElement('div');fl.className='tfloat';fl.style.left=cu.x+'%';fl.style.bottom='80px';fl.textContent='+'+v;
+  document.getElementById('tqueue').appendChild(fl);setTimeout(function(){fl.remove();},1000);
+  tcheckAch();trender();
+}
+function tcheckAch(){
+  var A=[[10,50],[50,200],[100,500],[250,1500]];
+  for(var i=0;i<A.length;i++){if(T.served>=A[i][0]&&!T.ach[A[i][0]]){T.ach[A[i][0]]=1;T.c+=A[i][1];ttoast('🏅 '+A[i][0]+' гостей! +'+A[i][1]+' 🪙');}}
+}
+function ttick(){
+  T.c+=tcps()/4;
+  T.spawn-=0.25;if(T.spawn<=0){T.spawn=tspawnInt();tspawnCust();}
+  for(var i=T.q.length-1;i>=0;i--){var cu=T.q[i];cu.pat-=0.25;
+    if(cu.pat<=0){T.q.splice(i,1);cu.el.classList.add('angry');(function(el){setTimeout(function(){el.remove();},500);})(cu.el);}}
+  if(T.b>0){T.bar-=0.25;if(T.bar<=0){T.bar=Math.max(1.2,5-T.b*0.5);if(T.q.length)tserve(T.q[0],false);}}
+  T.nextRush-=0.25;
+  if(T.rush>0){T.rush-=0.25;if(T.rush<=0)document.getElementById('trush').innerHTML='';}
+  else if(T.nextRush<=0){T.rush=20;T.nextRush=60+Math.random()*60;document.getElementById('trush').innerHTML='<div class="trush">🔥 Час пик! ×2</div>';}
+  trender();
 }
 function trender(){
   document.getElementById('tcoins').textContent=Math.floor(T.c);
-  document.getElementById('tcps').textContent='+'+tcps().toFixed(1)+' 🪙/сек · уровень '+(1+T.g+T.b+T.m);
-  document.getElementById('ttapv').textContent=ttapv();
-  document.getElementById('tugc').textContent='ур.'+T.g+' · '+tcost('g')+' 🪙';
-  document.getElementById('tubc').textContent='ур.'+T.b+' · '+tcost('b')+' 🪙';
-  document.getElementById('tumc').textContent='ур.'+T.m+' · '+tcost('m')+' 🪙';
-  document.getElementById('tug').disabled=T.c<tcost('g');
-  document.getElementById('tub').disabled=T.c<tcost('b');
-  document.getElementById('tum').disabled=T.c<tcost('m');
-  var L=1+T.g+T.b+T.m;
+  document.getElementById('tcps').textContent='офлайн +'+tcps().toFixed(1)+' 🪙/сек · обслужено: '+T.served;
+  var ids={g:'tugc',b:'tubc',m:'tumc',d:'tudc',mk:'tumkc'},dis={g:'tug',b:'tub',m:'tum',d:'tud',mk:'tumk'};
+  ['g','b','m','d','mk'].forEach(function(k){document.getElementById(ids[k]).textContent='ур.'+T[k]+' · '+tcost(k)+' 🪙';document.getElementById(dis[k]).disabled=T.c<tcost(k);});
+  var L=1+T.g+T.b+T.m+T.d+T.mk;
   document.getElementById('tlvl').textContent='☕ Уровень '+L;
-  document.getElementById('tmile').textContent=L>=10?'🏆 Империя утра!':L>=7?'🍡 Моти в меню!':L>=5?'🍹 Лимонадный бар!':L>=3?'✨ Авторский кофе!':'👉 Строим кофейню…';
+  document.getElementById('tmile').textContent=L>=12?'🏆 Империя утра!':L>=9?'🍡 Моти в меню!':L>=6?'🍹 Лимонадный бар!':L>=3?'✨ Авторский кофе!':'👉 Строим кофейню…';
 }
-function ttap(){T.c+=ttapv();trender();}
-function tbuy(k){var c=tcost(k);if(T.c<c)return;T.c-=c;if(k==='g')T.g++;if(k==='b')T.b++;if(k==='m')T.m++;trender();tsave();}
-function tsave(){fetch('/api/app/tycoon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok,save:{c:Math.floor(T.c),g:T.g,b:T.b,m:T.m}})});}
+function tbuy(k){var c=tcost(k);if(T.c<c)return;T.c-=c;T[k]++;tstuff();trender();tsave();}
+function tsave(){fetch('/api/app/tycoon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok,save:{c:Math.floor(T.c),g:T.g,b:T.b,m:T.m,d:T.d,mk:T.mk,served:T.served}})});}
 function texch(){
   fetch('/api/app/tycoon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok,exchange:1})})
   .then(function(r){if(!r.ok)throw 0;return r.json();})
-  .then(function(d){T.c=d.state.c;trender();document.getElementById('tres').textContent='✅ +'+d.granted+' баллов!';document.getElementById('pts').innerHTML=d.balance+' <small>баллов</small>';loadLeader();})
-  .catch(function(){document.getElementById('tres').textContent='Нужно 500 🪙!';});
+  .then(function(d){T.c=d.state.c;trender();ttoast('✅ +'+d.granted+' баллов!');document.getElementById('pts').innerHTML=d.balance+' <small>баллов</small>';loadLeader();})
+  .catch(function(){ttoast('Нужно 500 🪙!');});
 }
 function tclose(){clearInterval(T.tid);tsave();document.getElementById('toverlay').style.display='none';}
 setInterval(function(){if(T.loaded&&document.getElementById('toverlay').style.display==='flex')tsave();},5000);
