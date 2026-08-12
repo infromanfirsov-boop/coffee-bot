@@ -139,6 +139,10 @@ footer{text-align:center;color:#b39b85;font-size:11px;margin-top:16px}
   <button class="spin" onclick="m3start()">Играть!</button>
   <div class="res" id="m3last"></div>
 </div>
+<div class="game" style="margin-top:14px">
+  <h2>🏆 Топ игроков недели</h2>
+  <div id="lblist" style="text-align:left;margin-top:10px"></div>
+</div>
 <div class="m3overlay" id="m3overlay">
   <div class="m3box">
     <div class="m3hud"><span>🎯 <b id="m3score">0</b></span><span id="m3combo"></span><span>👟 <b id="m3moves">20</b></span><button class="m3close" onclick="m3hint()">💡 <b id="m3hints">3</b></button><button class="m3close" onclick="m3close()">✕</button></div>
@@ -412,7 +416,15 @@ async function m3end(){
   document.getElementById('m3res').textContent=txt;
   document.getElementById('m3last').textContent='Последний счёт: '+M3.score;
 }
-load(); loadQuiz();
+async function loadLeader(){
+  var r=await fetch('/api/app/leader',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok})});
+  if(!r.ok)return;
+  var d=await r.json();
+  var el=document.getElementById('lblist');
+  if(!d.rows.length){el.innerHTML='<p style="color:#8a7666">Пока никто не играл — стань первым!</p>';return;}
+  el.innerHTML=d.rows.map(function(x,i){var m=i===0?'🥇':i===1?'🥈':i===2?'🥉':'·';return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0e2d0;font-weight:700"><span>'+m+' '+x.name+'</span><span>'+x.pts+'</span></div>';}).join('');
+}
+load(); loadQuiz(); loadLeader();
 </script>
 </body>
 </html>
