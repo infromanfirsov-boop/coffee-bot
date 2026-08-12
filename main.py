@@ -92,6 +92,9 @@ ADMIN_PASS = os.getenv("ADMIN_PASSWORD", "utro_admin_2024")
 BACKUP_DIR = os.getenv("BACKUP_DIR", "backups")
 BACKUP_KEEP = _env_int("BACKUP_KEEP", "7")
 SITE_API_KEY = os.getenv("SITE_API_KEY", "utro_coffee_2024_secret_key_7a9b3c")
+if not SITE_API_KEY:
+    SITE_API_KEY = "utro_coffee_2024_secret_key_7a9b3c"
+MAX_PCT = _env_int("CASHBACK_MAX_PCT", "20")
 
 if not TOKEN:
     log.error("MAX_BOT_TOKEN не задан!")
@@ -237,6 +240,10 @@ def migrate():
             np = norm_phone(r["phone"])
             if np and np != r["phone"]:
                 c.execute("UPDATE users SET phone=? WHERE id=?", (np, r["id"]))
+        ucols = [r[1] for r in c.execute("PRAGMA table_info(users)")]
+        for col, ddl in [("x2_until", "TEXT DEFAULT ''"), ("last_promo", "TEXT DEFAULT ''")]:
+            if col not in ucols:
+                c.execute(f"ALTER TABLE users ADD COLUMN {col} {ddl}")
 
 def kv_get(k, d=""):
     with db() as c:
@@ -558,6 +565,13 @@ def photo_of(d):
             fid = p.get("file_id") or (p.get("photo") or {}).get("file_id")
             if url or fid: return url, fid
     return None, None
+def contact_of(d):
+    m = d.get("message") or {}
+    for a in (m.get("attachments") or []):
+        p = a.get("payload") or {}
+        if a.get("type") == "contact":
+            return p.get("phone") or p.get("phone_number") or (p.get("contact") or {}).get("phone")
+    return None
 
 def alert_admins(text):
     for a in ADMINS:
@@ -596,7 +610,7 @@ def parse_incoming(d):
     text = "/start" if d["update_type"] == "bot_started" else ((d.get("message") or {}).get("body") or {}).get("text", "")
     return {"uid": int(u["user_id"]), "text": str(text).strip(),
             "name": f"{u.get('first_name', '')} {u.get('last_name', '')}".strip(),
-            "payload": d.get("payload", ""), "photo": photo_of(d)}
+            "payload": d.get("payload", ""), "photo": photo_of(d), "contact": contact_of(d)}
 
 # === ДЕДУПЛИКАЦИЯ ===
 class Dedup:
@@ -683,7 +697,8 @@ def menu(uid, name):
         ONBOARD.set(uid, {"step": "phone"})
         t = (f"{PARTY} Добро пожаловать, {name}!{WAVE}\n{GIFT} Вам начислено {WELCOME} баллов!\n\n"
              f"{CARD} Карта: {u['card_number']}\n\nЗаполним профиль?\n{PHONE} Отправьте номер телефона (или «пропустить»):")
-        return rep(t, cancel())
+        return rep(t + "\n\nНажимая кнопку, вы соглашаетесь с обработкой персональных данных.",
+                   [[{"type": "request_contact", "text": "📞 Отправить контакт"}]] + cancel())
     t = (f"{CUP} Привет, {name}!{WAVE}\n\n{CARD} Карта: {u['card_number']}\n{STAR} Баланс: {bal} баллов\n"
          f"{lvl_name(v)} · кешбэк {pct(v)}%\n{CHART} {progress_bar(v)}\n\nВыберите раздел:")
     b = [[cb(CARD + " Карта", "show_card"), cb(STAR + " Баланс", "show_balance")],
@@ -1038,7 +1053,10 @@ def apply_delta(uid, delta, target, comment=""):
     return rep(f"{OK} {PLUS if delta > 0 else MINUS} {abs(delta)}\nНовый баланс: {STAR} {balance(target['id'])}", back())
 
 def apply_cashback(target, amount, items=None):
-    pts = int(amount * pct(target["visits_count"]) / 100)
+    base = pct(target["visits_count"])
+    mult = 2 if (target.get("x2_until") or "") >= datetime.now().strftime("%Y-%m-%d") else 1
+    rate = min(base * mult, MAX_PCT)
+    pts = int(amount * rate / 100)
     rid = uuid.uuid4().hex[:8]
     inv_uid = None
     with db() as c:
@@ -1070,7 +1088,7 @@ def apply_cashback(target, amount, items=None):
     if inv_uid:
         send_text(int(inv_uid), f"{PARTY} Ваш друг совершил первый визит! +{REF_BONUS} баллов {HAND}")
     v = u2["visits_count"]
-    msg = f"{OK} Кешбэк начислен!\n\n{RECEIPT} Чек: {amount:.0f} р.\n{lvl_name(v)} · +{pts} баллов\n{STAR} Баланс: {balance(target['id'])}"
+    msg = f"{OK} Кешбэк начислен!\n\n{RECEIPT} Чек: {amount:.0f} р.\n{lvl_name(v)} · +{pts} баллов" + (" (кешбэк ×2!)" if mult > 1 else "") + f"\n{STAR} Баланс: {balance(target['id'])}"
     if up:
         msg += f"\n\n{PARTY} Новый уровень: {lvl_name(v)} · {pct(v)}%!"
     return rep(msg, back())
@@ -1147,7 +1165,7 @@ def handle_onboard(uid, text, name=""):
     ONBOARD.clear(uid)
     return menu(uid, name)
 
-def handle_message(uid, text, name, payload="", photo=None):
+def handle_message(uid, text, name, payload="", photo=None, contact=None):
     uid = str(uid)
     t = text.strip()
     p = t.split()
@@ -1171,6 +1189,14 @@ def handle_message(uid, text, name, payload="", photo=None):
     ob = ONBOARD.get(uid)
     if ob and not is_priv(uid):
         if t.lower() in ("отмена", "cancel", "/cancel"):
+        if contact:
+            d = norm_phone(contact)
+            if d:
+                with db() as c:
+                    if not c.execute("SELECT 1 FROM users WHERE phone=? AND max_user_id!=?", (d, uid)).fetchone():
+                        c.execute("UPDATE users SET phone=? WHERE max_user_id=?", (d, uid))
+                ONBOARD.set(uid, {"step": "bday"})
+                return rep(f"{PHONE} Сохранено!\n{CAKE} Дата рождения: 15.05 (или «пропустить»):", cancel())
             ONBOARD.clear(uid)
             return rep(f"{CROSS} Отменено.", back())
         return handle_onboard(uid, t, name)
@@ -1361,6 +1387,13 @@ def handle_message(uid, text, name, payload="", photo=None):
     if cmd.startswith("/ref"): return do_refer(uid, p[1] if len(p) > 1 else "")
     if cmd.startswith("/review"): return review_screen(u)
     if cmd.startswith("/promo"): return promo_redeem(uid, p[1] if len(p) > 1 else "")
+    if contact and not u["phone"]:
+        d = norm_phone(contact)
+        if d:
+            with db() as c:
+                if not c.execute("SELECT 1 FROM users WHERE phone=? AND max_user_id!=?", (d, uid)).fetchone():
+                    c.execute("UPDATE users SET phone=? WHERE max_user_id=?", (d, uid))
+                    return rep(f"{PHONE} Сохранено: {d}", back())
     if not u["phone"]:
         d = norm_phone(t)
         if d:
@@ -1606,6 +1639,19 @@ def expire_loop():
                 send_text(int(r["max_user_id"]),
                           f"{HAND} {r['full_name'] or 'Друг'}, мы скучаем! Вас давно не было.\n{GIFT} Дарим {WINBACK_BONUS} баллов - сгорят через 7 дн. Загляните! {CUP}")
                 time.sleep(0.6)
+            today = now.strftime("%Y-%m-%d")
+            if now.hour == 12 and kv_get("t_last") != today:
+                kv_set("t_last", today)
+                cut5 = (now - timedelta(days=5)).strftime("%Y-%m-%d %H:%M:%S")
+                cut14 = (now - timedelta(days=14)).strftime("%Y-%m-%d %H:%M:%S")
+                with db() as c:
+                    rows = c.execute("SELECT id,max_user_id,full_name,last_promo FROM users WHERE last_visit IS NOT NULL AND last_visit>=? AND last_visit<?", (cut14, cut5)).fetchall()
+                for r in rows:
+                    if (r["last_promo"] or "") >= (now - timedelta(days=30)).strftime("%Y-%m-%d"): continue
+                    with db() as c:
+                        c.execute("UPDATE users SET x2_until=?, last_promo=? WHERE id=?", ((now + timedelta(days=7)).strftime("%Y-%m-%d"), today, r["id"]))
+                    send_text(int(r["max_user_id"]), f"{HAND} {r['full_name'] or 'Друг'}, нам вас не хватает! Целую неделю кешбэк ×2 на любой чек — только для вас. Ждём! {CUP}")
+                    time.sleep(0.6)
         except Exception as e:
             log.error("[expire] %s", e, exc_info=True)
         time.sleep(3600)
@@ -1637,7 +1683,7 @@ def process_update(d, src="hook"):
         if not inc: return
         log.info("[+] %s: %r", inc["uid"], inc["text"])
         bump("msg")
-        r = handle_message(str(inc["uid"]), inc["text"], inc["name"], inc.get("payload", ""), inc.get("photo"))
+        r = handle_message(str(inc["uid"]), inc["text"], inc["name"], inc.get("payload", ""), inc.get("photo"), inc.get("contact"))
         if r:
             if r["buttons"]: send_buttons(inc["uid"], r["text"], r["buttons"])
             else: send_text(inc["uid"], r["text"])
