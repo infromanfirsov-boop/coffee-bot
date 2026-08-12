@@ -1188,7 +1188,6 @@ def handle_message(uid, text, name, payload="", photo=None, contact=None):
         return menu(uid, name)
     ob = ONBOARD.get(uid)
     if ob and not is_priv(uid):
-        if t.lower() in ("отмена", "cancel", "/cancel"):
         if contact:
             d = norm_phone(contact)
             if d:
@@ -1197,6 +1196,7 @@ def handle_message(uid, text, name, payload="", photo=None, contact=None):
                         c.execute("UPDATE users SET phone=? WHERE max_user_id=?", (d, uid))
                 ONBOARD.set(uid, {"step": "bday"})
                 return rep(f"{PHONE} Сохранено!\n{CAKE} Дата рождения: 15.05 (или «пропустить»):", cancel())
+        if t.lower() in ("отмена", "cancel", "/cancel"):
             ONBOARD.clear(uid)
             return rep(f"{CROSS} Отменено.", back())
         return handle_onboard(uid, t, name)
