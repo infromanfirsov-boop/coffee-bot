@@ -2234,7 +2234,8 @@ async def app_tycoon(request: Request):
     if d.get("save"):
         s2 = d["save"]
         state = {"c": max(0, min(1e9, float(s2.get("c", 0)))), "g": int(s2.get("g", 0)),
-                 "b": int(s2.get("b", 0)), "m": int(s2.get("m", 0)), "t": now}
+                 "b": int(s2.get("b", 0)), "m": int(s2.get("m", 0)), "d": int(s2.get("d", 0)),
+                 "mk": int(s2.get("mk", 0)), "served": int(s2.get("served", 0)), "t": now}
         kv_set(key, json.dumps(state))
         return {"ok": True, "state": state}
     if d.get("exchange"):
