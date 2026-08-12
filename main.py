@@ -1945,7 +1945,7 @@ def api_webcard(phone: str = "", x_api_key: str = Header(default=""), request: R
         v = r["visits_count"]
     return {"ok": True, "card": r["card_number"], "points": balance(r["id"]), "visits": v, "level": lvl_name(v), "pct": pct(v)}
 # === ВЕБ-ПРИЛОЖЕНИЕ ===
-SPIN_SECTORS = [5, 5, 10, 5, 15, 5, 10, 25]
+SPIN_SECTORS = [0, 5, 5, 10, 0, 5, 15, 5]
 QUESTIONS = [
     {"q": "Почему напиток называется «бамбл»?", "a": ["За полосатые слои, как у шмеля", "За бодрящий гул", "В честь изобретателя Бамбла"], "c": 0},
     {"q": "Что в основе рафа?", "a": ["Сливки", "Вода", "Йогурт"], "c": 0},
@@ -1984,7 +1984,8 @@ async def app_me(request: Request):
             "visits": u["visits_count"], "card": u["card_number"],
             "spun": kv_get("spin_" + uid) == today, "streak": int(kv_get("streak_" + uid, "0") or 0),
             "caught": kv_get("catch_" + uid) == today,
-            "quiz_done": kv_get("quiz_" + uid) == today, "scratch_done": kv_get("scratch_" + uid) == today}
+            "quiz_done": kv_get("quiz_" + uid) == today, "scratch_done": kv_get("scratch_" + uid) == today,
+            "bets_left": 5 - int(kv_get(f"bet_{uid}_{today}", "0") or 0)}
 
 @app.post("/api/app/spin")
 async def app_spin(request: Request):
@@ -2004,7 +2005,7 @@ async def app_spin(request: Request):
     kv_set("streak_" + uid, str(streak))
     idx = random.choice(range(len(SPIN_SECTORS)))
     pts = SPIN_SECTORS[idx]
-    bonus = 20 if streak % 3 == 0 else 0
+    bonus = 10 if streak % 3 == 0 else 0
     u = ensure_user(uid)
     with db() as c:
         _batch(c, u["id"], pts + bonus, "game", f"🎁 Колесо удачи +{pts}" + (f" и серия 🔥 +{bonus}" if bonus else ""))
@@ -2024,7 +2025,7 @@ async def app_catch(request: Request):
     if kv_get("catch_" + uid) == today:
         raise HTTPException(429, "Сегодня уже играл")
     kv_set("catch_" + uid, today)
-    pts = min(15, score // 2)
+    pts = min(10, score // 3)
     if pts <= 0:
         return {"ok": True, "points": 0, "balance": None}
     u = ensure_user(uid)
@@ -2048,7 +2049,7 @@ async def app_quiz(request: Request):
         raise HTTPException(429, "Уже отвечал")
     kv_set("quiz_" + uid, today)
     correct = d.get("ans") == q["c"]
-    pts = 10 if correct else 2
+    pts = 5 if correct else 0
     u = ensure_user(uid)
     with db() as c:
         _batch(c, u["id"], pts, "game", f"🧠 Вопрос дня +{pts}")
@@ -2067,13 +2068,42 @@ async def app_scratch(request: Request):
     if kv_get("scratch_" + uid) == today:
         raise HTTPException(429, "Сегодня уже стирал")
     kv_set("scratch_" + uid, today)
-    pts = random.choice([5, 5, 10, 10, 15, 20])
+    pts = random.choice([0, 0, 5, 5, 10, 15])
     u = ensure_user(uid)
     with db() as c:
         _batch(c, u["id"], pts, "game", f"🎫 Скретч +{pts}")
         c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
                   (u["id"], "accrual", pts, "🎫 Скретч-карта"))
     return {"ok": True, "points": pts, "balance": balance(u["id"])}
+@app.post("/api/app/bet")
+async def app_bet(request: Request):
+    try: d = await request.json()
+    except Exception: d = {}
+    uid = app_uid(request, d)
+    if not uid: raise HTTPException(401, "Открой приложение из бота")
+    bet = int(d.get("bet", 0) or 0)
+    if bet not in (10, 20, 50): raise HTTPException(400, "Ставка 10/20/50")
+    now = datetime.now()
+    today = now.strftime("%Y-%m-%d")
+    cnt = int(kv_get(f"bet_{uid}_{today}", "0") or 0)
+    if cnt >= 5: raise HTTPException(429, "Лимит 5 ставок в день")
+    u = ensure_user(uid)
+    if balance(u["id"]) < bet: raise HTTPException(402, "Не хватает баллов")
+    kv_set(f"bet_{uid}_{today}", str(cnt + 1))
+    win_idx = random.randrange(3)
+    pick = int(d.get("pick", 0) or 0) % 3
+    win = pick == win_idx
+    with db() as c:
+        ok, nb = spend_points(u["id"], bet, f"🎰 Ставка {bet}")
+        if not ok: raise HTTPException(402, "Не хватает баллов")
+    prize = int(bet * 2.5) if win else 0
+    if win:
+        with db() as c:
+            _batch(c, u["id"], prize, "game", f"🎰 Выигрыш +{prize}")
+            c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
+                      (u["id"], "accrual", prize, "🎰 Выигрыш"))
+    return {"ok": True, "win": win, "win_idx": win_idx, "bet": bet, "prize": prize,
+            "balance": balance(u["id"]), "left": 5 - (cnt + 1)}
 def make_table_qr():
     try:
         me = http.get(f"{API}/me", headers=H, timeout=10).json()
