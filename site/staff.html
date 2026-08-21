@@ -127,14 +127,37 @@ function tab(t){
   if(t==='log')loadLog();
 }
 function setA(v){document.getElementById('ca').value=v;}
+var PEND=null;
 async function doCheck(){
   var res=document.getElementById('cres');res.textContent='⏳…';
-  var r=await api('/staff/api/check',{query:document.getElementById('cq').value,amount:document.getElementById('ca').value,items:document.getElementById('ci').value});
-  if(r.status===404){res.textContent='❌ Клиент не найден. Оставь первое поле пустым — будет гостевой чек.';return;}
-  if(!r.ok){res.textContent='❌ Ошибка '+r.status;return;}
+  var q=document.getElementById('cq').value.trim();
+  var a=document.getElementById('ca').value;
+  var i=document.getElementById('ci').value;
+  if(q){
+    var rf=await api('/staff/api/find',{query:q});
+    var df=await rf.json();
+    if(!df.ok){res.textContent='❌ Клиент не найден. Оставь поле пустым — будет гостевой чек.';return;}
+    var amt=parseFloat(a);
+    if(!(amt>0)){res.textContent='❌ Введи сумму чека';return;}
+    var maxp=Math.min(df.bal,Math.floor(amt*0.3));
+    PEND={q:q,a:a,i:i};
+    res.innerHTML='👤 '+(df.name||df.card)+' · баланс ⭐ '+df.bal+'<br>Чек '+a+' р. Списываем баллы?<br>'+
+      (maxp>0?'<button class="mini" onclick="doFinal('+maxp+')">💳 Списать '+maxp+'</button>':'')+
+      '<button class="mini sec" onclick="doFinal(0)">Без баллов</button>';
+    return;
+  }
+  doFinal(0);
+}
+async function doFinal(deduct){
+  var res=document.getElementById('cres');res.textContent='⏳…';
+  var data=PEND||{q:document.getElementById('cq').value,a:document.getElementById('ca').value,i:document.getElementById('ci').value};
+  var r=await api('/staff/api/check',{query:data.q,amount:data.a,items:data.i,deduct:deduct});
+  if(r.status===404){res.textContent='❌ Клиент не найден. Оставь первое поле пустым — будет гостевой чек.';PEND=null;return;}
+  if(!r.ok){res.textContent='❌ Ошибка '+r.status;PEND=null;return;}
   var d=await r.json();
   res.textContent=d.guest?d.text:'✅ Гостевой чек сохранён';
   document.getElementById('cq').value='';document.getElementById('ca').value='';document.getElementById('ci').value='';
+  PEND=null;
 }
 async function doFind(){
   GQ=document.getElementById('gq').value;
