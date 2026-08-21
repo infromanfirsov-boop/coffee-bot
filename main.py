@@ -1852,6 +1852,13 @@ def robots():
 @app.get("/sitemap.xml")
 def sitemap():
     return Response(content='<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n<url><loc>https://xn----jtboocinhp.xn--p1ai/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>\n</urlset>\n', media_type="application/xml")
+@app.get("/robots.txt")
+def robots():
+    return Response(content="User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /staff\nSitemap: https://xn----jtboocinhp.xn--p1ai/sitemap.xml\n", media_type="text/plain")
+
+@app.get("/sitemap.xml")
+def sitemap():
+    return Response(content='<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n<url><loc>https://xn----jtboocinhp.xn--p1ai/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>\n</urlset>\n', media_type="application/xml")
 @app.get("/health")
 def health(): return {"status": "ok"}
 
@@ -2010,6 +2017,27 @@ def admin_extra(request: Request):
         loyal = c.execute("SELECT COUNT(*) n FROM users WHERE visits_count>=2").fetchone()["n"]
     pct = round(loyal * 100 / (first + loyal)) if (first + loyal) else 0
     return {"ok": True, "hours": hours, "first": first, "loyal": loyal, "pct": pct}
+@app.get("/admin/api/staff")
+def admin_staff(request: Request):
+    if not admin_ok(request): raise HTTPException(401)
+    with db_ro() as c:
+        inv = c.execute("SELECT * FROM inventory ORDER BY qty ASC").fetchall()
+        log = c.execute("SELECT * FROM audit ORDER BY id DESC LIMIT 50").fetchall()
+    return {"ok": True,
+            "inv": [dict(r) for r in inv],
+            "log": [dict(r) for r in log],
+            "backup": kv_get("last_backup", "—")}
+
+@app.get("/admin/api/games")
+def admin_games(request: Request):
+    if not admin_ok(request): raise HTTPException(401)
+    ma = (datetime.now() - timedelta(days=30)).isoformat()
+    with db_ro() as c:
+        given = c.execute("SELECT COALESCE(SUM(points),0) FROM transactions WHERE type='accrual' AND created_at>=? AND source='game'", (ma,)).fetchone()[0]
+        spent = c.execute("SELECT COALESCE(SUM(-points),0) FROM transactions WHERE type='writeoff' AND created_at>=?", (ma,)).fetchone()[0]
+        players = c.execute("SELECT COUNT(DISTINCT user_id) FROM transactions WHERE type='accrual' AND created_at>=? AND source='game'", (ma,)).fetchone()[0]
+    return {"ok": True, "given": int(given), "spent": int(spent), "players": players,
+            "roi": round(spent / given, 2) if given else 0}
 @app.get("/api/webcard")
 def api_webcard(phone: str = "", x_api_key: str = Header(default=""), request: Request = None):
     if x_api_key != SITE_API_KEY:
