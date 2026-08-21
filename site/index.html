@@ -476,6 +476,15 @@ const res=await fetch((full?'/api/webcard?phone=':'/api/public/card?phone=')+pho
     }
   }catch(e){resultBox.innerHTML='<div style="color:#FFB4A8;">Ошибка соединения с сервером</div>';}
 }
+// Скрываем эмодзи ☕ когда загрузилась картинка
+document.querySelectorAll('img').forEach(function(img){
+  img.addEventListener('load', function(){
+    if(this.alt && this.alt.indexOf('Кофе с собой') >= 0){
+      var ph = this.previousElementSibling;
+      if(ph && ph.classList.contains('hero-ph')) ph.style.display = 'none';
+    }
+  });
+});
 </script>
 </body>
 </html>
