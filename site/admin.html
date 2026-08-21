@@ -79,11 +79,6 @@ textarea{min-height:80px;resize:vertical}
     <div class="tblwrap"><table><thead><tr><th>Имя</th><th>Телефон</th><th>Визиты</th><th>Потрачено</th><th>Баллы</th><th>Был(а)</th></tr></thead><tbody id="ct"></tbody></table></div>
   </div>
   <div class="card">
-    <h2>🎮 Экономика игр (30 дней)</h2>
-    <div class="kpis" id="games" style="margin:0"></div>
-    <p style="color:var(--mut);font-size:12px;margin-top:10px">ROI = списано за кофе ÷ выдано через игры. Больше 1 = игры окупаются.</p>
-  </div>
-  <div class="card">
     <h2>📦 Склад</h2>
     <div class="tblwrap"><table><thead><tr><th>Товар</th><th>Остаток</th><th>Минимум</th><th>Статус</th></tr></thead><tbody id="inv"></tbody></table></div>
   </div>
@@ -164,16 +159,7 @@ async function staff(){
   }).join('')||'<tr><td colspan="4">Пока пусто</td></tr>';
   document.getElementById('bkup').textContent=d.backup;
 }
-async function games(){
-  const r=await fetch('/admin/api/games');if(!r.ok)return;
-  const d=await r.json();
-  document.getElementById('games').innerHTML=
-    kpi(d.given+' ⭐','выдано через игры')+
-    kpi(d.spent+' ⭐','списано за кофе')+
-    kpi(d.players,'активных игроков')+
-    kpi(d.roi,'ROI');
-}
-staff(); games();
+staff();
 </script>
 </body>
 </html>
