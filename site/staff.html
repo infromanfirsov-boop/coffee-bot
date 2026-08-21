@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Утро — рабочее место бариста</title>
+<style>
+:root{--ink:#2B1A12;--sun:#FF7A00;--sun2:#FF9E3D}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Manrope',system-ui,sans-serif;background:linear-gradient(180deg,#FFF9F2,#FFEFD9);color:var(--ink);min-height:100vh;max-width:520px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin-bottom:12px}
+h3{font-size:14px;margin:14px 0 6px}
+input{width:100%;padding:12px;border-radius:12px;border:2px solid #f0e2d0;background:#fff;font-size:15px;margin-bottom:8px;font-family:inherit}
+button{width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;margin-bottom:6px}
+button.sec{background:#fff;color:var(--ink);border:2px solid #f0e2d0}
+.res{font-weight:700;color:#C2540A;min-height:20px;margin:8px 0;white-space:pre-wrap;font-size:14px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+header b{font-size:16px}
+header button{width:auto;padding:6px 12px;font-size:12px;background:#f0e2d0;color:var(--ink)}
+nav{display:flex;gap:6px;margin-bottom:12px}
+nav button{flex:1;padding:10px 4px;font-size:12px;background:#fff;color:var(--ink);border:2px solid #f0e2d0;margin:0}
+nav button.on{background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;border-color:transparent}
+.row{background:#fff;border:2px solid #f0e2d0;border-radius:14px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.row.low{border-color:#B3372F;background:#FDECEC}
+.row b{font-size:14px}
+.row small{display:block;color:#8a7666;font-size:11px}
+.mini{width:auto;padding:6px 10px;font-size:13px;margin:0;border-radius:8px}
+.logrow{background:#fff;border-radius:10px;padding:8px 10px;margin-bottom:6px;font-size:12px}
+.logrow b{color:var(--sun)}
+</style>
+</head>
+<body>
+<div id="login">
+  <h1>☕ Утро · смена</h1>
+  <input id="pw" type="password" placeholder="Пароль смены">
+  <button onclick="login()">Войти</button>
+</div>
+<div id="app" style="display:none">
+  <header><b id="roleLbl">☕ бариста</b><button onclick="logout()">выход</button></header>
+  <nav>
+    <button data-t="check" class="on" onclick="tab('check')">🧾 Чек</button>
+    <button data-t="guest" onclick="tab('guest')">👤 Гость</button>
+    <button data-t="inv" onclick="tab('inv')">📦 Склад</button>
+    <button data-t="log" id="logTab" style="display:none" onclick="tab('log')">📋 Лог</button>
+  </nav>
+  <section id="t-check">
+    <input id="cq" placeholder="Телефон / карта / имя (или пусто)">
+    <input id="ca" type="number" inputmode="decimal" placeholder="Сумма чека, ₽">
+    <input id="ci" placeholder="Товары: латте, круассан (необязательно)">
+    <button onclick="doCheck()">Провести</button>
+    <div class="res" id="cres"></div>
+  </section>
+  <section id="t-guest" style="display:none">
+    <h3>Новая карта гостя</h3>
+    <input id="gn" placeholder="Имя">
+    <input id="gp" type="tel" placeholder="Телефон 79991234567">
+    <button onclick="doNew()">Создать карту</button>
+    <div class="res" id="gres"></div>
+    <h3>Бонусы гостю</h3>
+    <input id="bq" placeholder="Телефон / карта / имя">
+    <button class="sec" onclick="doBonus('eco')">🌱 Своя кружка +10</button>
+    <button class="sec" onclick="doBonus('book')">📚 Книга +20</button>
+    <div class="res" id="bres"></div>
+  </section>
+  <section id="t-inv" style="display:none">
+    <div id="invlist"></div>
+    <h3>Приход / новый товар</h3>
+    <input id="in" placeholder="Название (молоко, стаканы…)">
+    <input id="iu" placeholder="Ед.: шт/кг/л" style="width:110px">
+    <input id="iq" type="number" inputmode="decimal" placeholder="Кол-во" style="width:90px">
+    <input id="im" type="number" inputmode="decimal" placeholder="Минимум" style="width:90px">
+    <button onclick="invAdd()">➕ Приход</button>
+  </section>
+  <section id="t-log" style="display:none"><div id="loglist"></div></section>
+</div>
+<script>
+var ROLE='';
+async function api(path,body){
+  var r=await fetch(path,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
+  return r;
+}
+async function login(){
+  var r=await api('/staff/login',{password:document.getElementById('pw').value});
+  if(!r.ok){alert('Неверный пароль');return;}
+  var d=await r.json();start(d.role);
+}
+function start(role){
+  ROLE=role;
+  document.getElementById('login').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('roleLbl').textContent=role==='admin'?'☕ админ':'☕ бариста';
+  if(role==='admin')document.getElementById('logTab').style.display='';
+  tab('check');loadInv();
+}
+function logout(){api('/staff/logout',{}).then(function(){location.reload();});}
+function tab(t){
+  document.querySelectorAll('nav button').forEach(function(b){b.classList.toggle('on',b.dataset.t===t);});
+  ['check','guest','inv','log'].forEach(function(s){document.getElementById('t-'+s).style.display=s===t?'':'none';});
+  if(t==='inv')loadInv();
+  if(t==='log')loadLog();
+}
+async function doCheck(){
+  var res=document.getElementById('cres');res.textContent='…';
+  var r=await api('/staff/api/check',{query:document.getElementById('cq').value,amount:document.getElementById('ca').value,items:document.getElementById('ci').value});
+  if(r.status===404){res.textContent='Клиент не найден — оставь поле пустым для гостевого чека';return;}
+  if(!r.ok){res.textContent='Ошибка: '+r.status;return;}
+  var d=await r.json();
+  res.textContent=d.guest?d.text:'✅ Гостевой чек сохранён';
+  document.getElementById('cq').value='';document.getElementById('ca').value='';document.getElementById('ci').value='';
+}
+async function doNew(){
+  var res=document.getElementById('gres');res.textContent='…';
+  var r=await api('/staff/api/newcard',{name:document.getElementById('gn').value,phone:document.getElementById('gp').value});
+  if(!r.ok){res.textContent='Ошибка: '+(r.status===409?'телефон уже зарегистрирован':r.status);return;}
+  var d=await r.json();
+  res.textContent='✅ Карта создана: '+d.card+'\nГость увидит её в приложении по своему телефону.';
+  document.getElementById('gn').value='';document.getElementById('gp').value='';
+}
+async function doBonus(kind){
+  var res=document.getElementById('bres');res.textContent='…';
+  var r=await api('/staff/api/bonus',{query:document.getElementById('bq').value,kind:kind});
+  if(!r.ok){res.textContent=r.status===404?'Не найден':'Ошибка';return;}
+  var d=await r.json();
+  res.textContent='✅ +'+d.pts+' баллов. Баланс гостя: '+d.balance;
+}
+async function loadInv(){
+  var r=await api('/staff/api/inv');if(!r.ok)return;
+  var d=await r.json();
+  document.getElementById('invlist').innerHTML=d.rows.map(function(x){
+    var low=x.qty<=x.min_qty;
+    return '<div class="row'+(low?' low':'')+'"><div><b>'+x.name+'</b><small>'+(low?'⚠️ мало! ':'')+x.qty+' '+x.unit+' · мин '+x.min_qty+'</small></div>'+
+      '<div><button class="mini sec" onclick="invMove('+x.id+',-1)">−1</button><button class="mini sec" onclick="invMove('+x.id+',1)">+1</button><button class="mini" onclick="invAsk('+x.id+')">✏️</button></div></div>';
+  }).join('')||'<p style="color:#8a7666">Склад пуст — добавь первый товар ниже.</p>';
+}
+async function invMove(id,delta){
+  await api('/staff/api/inv/move',{id:id,delta:delta,reason:delta<0?'списание':'корректировка'});
+  loadInv();
+}
+function invAsk(id){
+  var v=prompt('Сколько добавить/списать? (например: -2 или 10)');
+  if(v===null)return;
+  var n=parseFloat(v.replace(',','.'));
+  if(isNaN(n)||n===0)return;
+  api('/staff/api/inv/move',{id:id,delta:n,reason:n<0?'списание':'приход'}).then(loadInv);
+}
+async function invAdd(){
+  var r=await api('/staff/api/inv/add',{name:document.getElementById('in').value,unit:document.getElementById('iu').value,qty:document.getElementById('iq').value,min:document.getElementById('im').value});
+  if(r.ok){document.getElementById('in').value='';document.getElementById('iq').value='';loadInv();}
+  else alert('Ошибка');
+}
+async function loadLog(){
+  var r=await api('/staff/api/log');if(!r.ok)return;
+  var d=await r.json();
+  document.getElementById('loglist').innerHTML=d.rows.map(function(x){
+    return '<div class="logrow"><b>'+x.who+'</b> · '+x.action+' · '+x.detail+'<br><small>'+x.created_at+'</small></div>';
+  }).join('');
+}
+</script>
+</body>
+</html>
