@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Кофейный бонусный бот для MAX. v27 FINAL.
+"""Кофейный бонусный бот для MAX. v28 CLEAN.
 python3 main.py | qr | test
 """
 import asyncio, csv, io, json, logging, os, random, shutil, sqlite3, sys, tempfile, threading, time, uuid
@@ -82,7 +82,6 @@ WARN_DAYS = _env_int("POINTS_EXPIRE_WARNING_DAYS", "7")
 BDAY_BONUS = _env_int("BIRTHDAY_BONUS", "200")
 BDAY_DAYS = _env_int("BIRTHDAY_DAYS", "3")
 MAX_PAY = _env_int("MAX_PAY_PERCENT", "30")
-GAME_CAP = _env_int("GAME_CAP_MONTH", "300")
 CHALLENGE_PTS = _env_int("CHALLENGE_PTS", "50")
 EXPLORER_PTS = _env_int("EXPLORER_PTS", "100")
 STREAK_PTS = _env_int("STREAK_PTS", "30")
@@ -97,9 +96,6 @@ ADMIN_PASS = os.getenv("ADMIN_PASSWORD", "utro_admin_2024")
 STAFF_PASS = os.getenv("STAFF_PASSWORD", "utro_staff_2024")
 BACKUP_DIR = os.getenv("BACKUP_DIR", "backups")
 BACKUP_KEEP = _env_int("BACKUP_KEEP", "7")
-SITE_API_KEY = os.getenv("SITE_API_KEY", "utro_coffee_2024_secret_key_7a9b3c")
-if not SITE_API_KEY:
-    SITE_API_KEY = "utro_coffee_2024_secret_key_7a9b3c"
 MAX_PCT = _env_int("CASHBACK_MAX_PCT", "20")
 
 if not TOKEN:
@@ -262,12 +258,6 @@ def kv_set(k, v):
     with db() as c:
         c.execute("INSERT OR REPLACE INTO kv(key,value) VALUES(?,?)", (k, v))
 
-def bump(key, n=1):
-    k = f"cnt_{datetime.now():%Y%m%d}_{key}"
-    with db() as c:
-        c.execute("INSERT INTO kv(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=CAST(value AS INTEGER)+?",
-                  (k, n, n))
-
 # === БЭКАПЫ ===
 def do_backup():
     try:
@@ -386,23 +376,6 @@ def spend_points(uid, points, comment=""):
         BAL.drop(uid)
         return True, bal - points
 
-
-def game_grant(uid_int, pts, comment):
-    now = datetime.now()
-    kv_set(f"plays_{uid_int}", str(int(kv_get(f"plays_{uid_int}", "0") or 0) + 1))
-    key = f"gcap_{uid_int}_{now.strftime('%Y-%m')}"
-    used = int(kv_get(key, "0") or 0)
-    if used >= GAME_CAP or pts <= 0: return 0
-    pts = min(pts, GAME_CAP - used)
-    kv_set(key, str(used + pts))
-    wk = now.strftime("%G-W%V")
-    lk = f"lb_{wk}_{uid_int}"
-    kv_set(lk, str(int(kv_get(lk, "0") or 0) + pts))
-    with db() as c:
-        _batch(c, uid_int, pts, "game", comment)
-        c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
-                  (uid_int, "accrual", pts, comment))
-    return pts
 def find_user(q):
     qo = q.strip(); q = qo.lower()
     with db() as c:
@@ -590,6 +563,7 @@ def photo_of(d):
             fid = p.get("file_id") or (p.get("photo") or {}).get("file_id")
             if url or fid: return url, fid
     return None, None
+
 def contact_of(d):
     m = d.get("message") or {}
     for a in (m.get("attachments") or []):
@@ -730,11 +704,11 @@ def menu(uid, name):
          [cb(HIST + " История", "show_history"), cb(HELP + " Помощь", "show_help")]]
     if not is_priv(uid):
         b += [[cb(MEDAL + " Награды", "show_badges"), cb(HAND + " Пригласить", "show_refer")],
-              [cb(STAR + " Отзыв", "show_review"), cb("🎁 Колесо удачи", "openapp")]]
+              [cb(STAR + " Отзыв", "show_review"), cb("📱 Приложение", "openapp")]]
     if is_priv(uid):
         b += [[cb(RECEIPT + " Чек", "checkflow"), cb("🧾 Гость", "walkflow")],
               [cb(SEARCH + " Поиск", "show_search"), cb(USERS + " Клиенты", "show_clients")],
-              [cb(PLUS + " Гостю карта", "newflow"), cb("🎁 Колесо удачи", "openapp")]]
+              [cb(PLUS + " Гостю карта", "newflow"), cb("📱 Приложение", "openapp")]]
         if uid in ADMINS:
             b += [[cb(CHART2 + " Топ", "show_top"), cb(CHART2 + " ABC", "show_abc"), cb(CHART2 + " RFM", "show_rfm")],
                   [cb(BULB + " Инсайты", "show_insights"), cb(EXPORT + " CSV", "export_csv"), cb(EXPORT + " Файлы", "export_files")],
@@ -1033,7 +1007,7 @@ def do_top(uid):
     return rep("\n".join(l), back())
 
 def do_insights(uid):
-    if uid not in ADMINS: return rep(f"{NO} Только админ.", back())
+    if not is_priv(uid): return rep(f"{NO} Только персонал.", back())
     now = datetime.now()
     ma = now - timedelta(days=30)
     with db() as c:
@@ -1408,7 +1382,7 @@ def handle_message(uid, text, name, payload="", photo=None, contact=None):
                     cn = PENDING.get(uid)
                     if cn: target = find_user(cn)
                 if target: return apply_delta(uid, delta, target, " ".join(p[2:]))
-                return rep(f"{THINK} Укажите: {op} COFFEE... или кнопка в карточке", back())
+            return rep(f"{THINK} Укажите: {op} COFFEE... или кнопка в карточке", back())
         elif is_float(op):
             amount = float(op)
             cn = PENDING_CASH.get(uid)
@@ -1532,7 +1506,7 @@ def handle_callback(uid, payload, name):
     if payload == "openapp":
         tok = uuid.uuid4().hex
         kv_set("app_tok_" + tok, uid)
-        return rep(f"{PARTY} Твоя карта и игра готовы!",
+        return rep(f"{PARTY} Твоя карта готова!",
                    [[{"type": "link", "text": "📱 Открыть приложение", "url": f"https://утро-кофе.рф/app?t={tok}"}]])
     if payload == "newflow":
         PENDING_NEW.set(uid, {"step": "name"})
@@ -1751,7 +1725,6 @@ def process_update(d, src="hook"):
             payload = (d.get("callback") or {}).get("payload") or d.get("payload") or ""
             if uid and payload:
                 log.info("[+] callback %s: %s", uid, payload)
-                bump("cb")
                 r = handle_callback(uid, payload, u.get("first_name", ""))
                 if r:
                     if r["buttons"]: send_buttons(int(uid), r["text"], r["buttons"])
@@ -1760,7 +1733,6 @@ def process_update(d, src="hook"):
         inc = parse_incoming(d)
         if not inc: return
         log.info("[+] %s: %r", inc["uid"], inc["text"])
-        bump("msg")
         r = handle_message(str(inc["uid"]), inc["text"], inc["name"], inc.get("payload", ""), inc.get("photo"), inc.get("contact"))
         if r:
             if r["buttons"]: send_buttons(inc["uid"], r["text"], r["buttons"])
@@ -1813,9 +1785,11 @@ async def lifespan(app):
     yield
 
 app = FastAPI(lifespan=lifespan)
+
 @app.exception_handler(404)
 async def nf(request: Request, exc):
     return HTMLResponse("<html style='font-family:sans-serif;text-align:center;padding:60px'><h1>404 ☕</h1><p>Такой страницы нет — возможно, её выпили.<br><a href='/'>Вернуться на главную</a></p></html>", status_code=404)
+
 app.add_middleware(CORSMiddleware,
                    allow_origins=["https://утро-кофе.рф", "https://xn----jtboocinhp.xn--p1ai", "http://127.0.0.1:8000"],
                    allow_methods=["GET", "POST"],
@@ -1825,25 +1799,30 @@ app.add_middleware(CORSMiddleware,
 app.mount("/assets", StaticFiles(directory=os.path.join(BASE, "site")), name="assets")
 app.mount("/static", StaticFiles(directory=os.path.join(BASE, "site")), name="static")
 
-@app.get("/api/card")
-def api_card(phone: str = "", x_api_key: str = Header(default=""), request: Request = None):
-    if x_api_key != SITE_API_KEY:
-        raise HTTPException(403, "Forbidden")
-    # Rate-limit по реальному IP
+def _public_card(phone: str = "", request: Request = None):
     ip = "unknown"
     if request:
         xff = request.headers.get("x-forwarded-for", "")
         ip = xff.split(",")[0].strip() if xff else (request.client.host or "unknown")
-    if not check_rate(ip, limit=15, window=60):
-        raise HTTPException(429, "Too many requests")
+    if not check_rate("pub_" + ip, limit=5, window=60):
+        raise HTTPException(429, "Слишком часто — подождите минуту")
     d = "".join(ch for ch in phone if ch.isdigit())
     if len(d) < 4: return {"ok": False}
     with db() as c:
-        r = c.execute("SELECT id,visits_count FROM users WHERE phone LIKE ?", (f"%{d[-10:]}",)).fetchone()
+        r = c.execute("SELECT id,card_number,visits_count FROM users WHERE phone LIKE ?", (f"%{d[-10:]}",)).fetchone()
         if not r: return {"ok": False}
-        bal = balance(r["id"])
         v = r["visits_count"]
-    return {"ok": True, "points": bal, "visits": v, "level": lvl_name(v), "pct": pct(v)}
+    out = {"ok": True, "points": balance(r["id"]), "visits": v, "level": lvl_name(v), "pct": pct(v)}
+    if len(d) >= 10: out["card"] = r["card_number"]
+    return out
+
+@app.get("/api/public/card")
+def api_public_card(phone: str = "", request: Request = None):
+    return _public_card(phone, request)
+
+@app.get("/api/webcard")
+def api_webcard(phone: str = "", request: Request = None):
+    return _public_card(phone, request)
 
 @app.get("/robots.txt")
 def robots():
@@ -1852,13 +1831,7 @@ def robots():
 @app.get("/sitemap.xml")
 def sitemap():
     return Response(content='<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n<url><loc>https://xn----jtboocinhp.xn--p1ai/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>\n</urlset>\n', media_type="application/xml")
-@app.get("/robots.txt")
-def robots():
-    return Response(content="User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /staff\nSitemap: https://xn----jtboocinhp.xn--p1ai/sitemap.xml\n", media_type="text/plain")
 
-@app.get("/sitemap.xml")
-def sitemap():
-    return Response(content='<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n<url><loc>https://xn----jtboocinhp.xn--p1ai/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>\n</urlset>\n', media_type="application/xml")
 @app.get("/health")
 def health(): return {"status": "ok"}
 
@@ -1953,6 +1926,7 @@ def admin_stats(request: Request, days: int = 14):
     return {"ok": True, "total": total, "active": active, "sleeping": sleeping, "liability": liability,
             "today_sum": s, "today_cnt": n, "avg": avg, "days": series,
             "top": [{"item": r["item"], "cnt": r["c"]} for r in top]}
+
 @app.get("/admin/api/clients")
 def admin_clients(request: Request, q: str = ""):
     if not admin_ok(request): raise HTTPException(401, "Нужен вход")
@@ -2000,6 +1974,7 @@ def admin_export(request: Request):
     if not admin_ok(request): raise HTTPException(401, "Нужен вход")
     return Response(content=export_csv(), media_type="text/csv",
                     headers={"Content-Disposition": "attachment; filename=clients.csv"})
+
 @app.get("/admin/api/extra")
 def admin_extra(request: Request):
     if not admin_ok(request): raise HTTPException(401, "Нужен вход")
@@ -2015,8 +1990,9 @@ def admin_extra(request: Request):
             hours.append({"h": h, "s": round(s)})
         first = c.execute("SELECT COUNT(*) n FROM users WHERE visits_count=1").fetchone()["n"]
         loyal = c.execute("SELECT COUNT(*) n FROM users WHERE visits_count>=2").fetchone()["n"]
-    pct = round(loyal * 100 / (first + loyal)) if (first + loyal) else 0
-    return {"ok": True, "hours": hours, "first": first, "loyal": loyal, "pct": pct}
+    pct_ret = round(loyal * 100 / (first + loyal)) if (first + loyal) else 0
+    return {"ok": True, "hours": hours, "first": first, "loyal": loyal, "pct": pct_ret}
+
 @app.get("/admin/api/staff")
 def admin_staff(request: Request):
     if not admin_ok(request): raise HTTPException(401)
@@ -2028,48 +2004,7 @@ def admin_staff(request: Request):
             "log": [dict(r) for r in log],
             "backup": kv_get("last_backup", "—")}
 
-@app.get("/admin/api/games")
-def admin_games(request: Request):
-    if not admin_ok(request): raise HTTPException(401)
-    ma = (datetime.now() - timedelta(days=30)).isoformat()
-    with db_ro() as c:
-        given = c.execute("SELECT COALESCE(SUM(points),0) FROM transactions WHERE type='accrual' AND created_at>=? AND source='game'", (ma,)).fetchone()[0]
-        spent = c.execute("SELECT COALESCE(SUM(-points),0) FROM transactions WHERE type='writeoff' AND created_at>=?", (ma,)).fetchone()[0]
-        players = c.execute("SELECT COUNT(DISTINCT user_id) FROM transactions WHERE type='accrual' AND created_at>=? AND source='game'", (ma,)).fetchone()[0]
-    return {"ok": True, "given": int(given), "spent": int(spent), "players": players,
-            "roi": round(spent / given, 2) if given else 0}
-@app.get("/api/webcard")
-def api_webcard(phone: str = "", x_api_key: str = Header(default=""), request: Request = None):
-    if x_api_key != SITE_API_KEY:
-        raise HTTPException(403, "Forbidden")
-    ip = "unknown"
-    if request:
-        xff = request.headers.get("x-forwarded-for", "")
-        ip = xff.split(",")[0].strip() if xff else (request.client.host or "unknown")
-    if not check_rate("wc_" + ip, limit=10, window=60):
-        raise HTTPException(429, "Too many requests")
-    d = norm_phone(phone)
-    if not d: return {"ok": False}
-    with db() as c:
-        r = c.execute("SELECT id,card_number,visits_count FROM users WHERE phone=?", (d,)).fetchone()
-        if not r: return {"ok": False}
-        v = r["visits_count"]
-    return {"ok": True, "card": r["card_number"], "points": balance(r["id"]), "visits": v, "level": lvl_name(v), "pct": pct(v)}
 # === ВЕБ-ПРИЛОЖЕНИЕ ===
-SPIN_SECTORS = [0, 5, 5, 10, 0, 5, 10, 5]
-QUESTIONS = [
-    {"q": "Почему напиток называется «бамбл»?", "a": ["За полосатые слои, как у шмеля", "За бодрящий гул", "В честь изобретателя Бамбла"], "c": 0},
-    {"q": "Что в основе рафа?", "a": ["Сливки", "Вода", "Йогурт"], "c": 0},
-    {"q": "Родина кофе — …", "a": ["Эфиопия", "Бразилия", "Италия"], "c": 0},
-    {"q": "«Эспрессо» означает…", "a": ["Выжатый под давлением", "Очень быстрый", "Чёрный как ночь"], "c": 0},
-    {"q": "Сколько стоит латте 450 мл у нас?", "a": ["300 ₽", "260 ₽", "220 ₽"], "c": 1},
-    {"q": "Матча — это…", "a": ["Тёртый зелёный чай", "Чёрный чай с молоком", "Вид какао"], "c": 0},
-    {"q": "Сколько визитов до уровня «Постоялец»?", "a": ["10", "5", "30"], "c": 0},
-    {"q": "Сколько баллов дарим за книгу для буккроссинга?", "a": ["20", "50", "Нисколько"], "c": 0},
-    {"q": "Какой лимонад у нас НЕ готовят?", "a": ["Манго-чили", "Голубая лагуна", "Маракуйя-соло"], "c": 0},
-    {"q": "Чем платят гости в приложении?", "a": ["Баллами", "Криптовалютой", "Наклейками"], "c": 0},
-]
-
 def app_uid(request: Request, d):
     tok = (d or {}).get("token", "") or request.headers.get("x-app-token", "")
     if not tok: return None
@@ -2082,6 +2017,7 @@ def app_page():
         with open(p, encoding="utf-8") as f: return f.read()
     except OSError:
         return "<h1>app.html не найден</h1>"
+
 @app.post("/api/app/me")
 async def app_me(request: Request):
     try: d = await request.json()
@@ -2089,7 +2025,6 @@ async def app_me(request: Request):
     uid = app_uid(request, d)
     if not uid: raise HTTPException(401, "Открой приложение из бота")
     u = ensure_user(uid)
-    today = datetime.now().strftime("%Y-%m-%d")
     nl = next_lvl(u["visits_count"])
     with db() as c:
         fr = c.execute("SELECT item FROM purchases WHERE user_id=? AND item!='' ORDER BY created_at DESC LIMIT 20", (u["id"],)).fetchall()
@@ -2099,253 +2034,8 @@ async def app_me(request: Request):
     return {"ok": True, "name": u["full_name"] or "друг", "points": balance(u["id"]),
             "level": lvl_name(u["visits_count"]), "pct": pct(u["visits_count"]),
             "visits": u["visits_count"], "card": u["card_number"],
-            "exp": expiring_soon(u["id"]), "next": nl[0] if nl else None, "fav": fav,
-            "spun": kv_get("spin_" + uid) == today, "streak": int(kv_get("streak_" + uid, "0") or 0),
-            "caught": kv_get("catch_" + uid) == today,
-            "quiz_done": kv_get("quiz_" + uid) == today, "scratch_done": kv_get("scratch_" + uid) == today,
-            "bets_left": 5 - int(kv_get(f"bet_{uid}_{today}", "0") or 0),
-            "m3_done": kv_get("m3_" + uid) == today,
-            "day": int(kv_get(f"dayn_{uid}", "1") or 1),
-            "day_claimed": kv_get(f"dayc_{uid}") == datetime.now().strftime("%Y-%m-%d")}
+            "exp": expiring_soon(u["id"]), "next": nl[0] if nl else None, "fav": fav}
 
-@app.post("/api/app/spin")
-async def app_spin(request: Request):
-    try: d = await request.json()
-    except Exception: d = {}
-    uid = app_uid(request, d)
-    if not uid: raise HTTPException(401, "Открой приложение из бота")
-    now = datetime.now()
-    today = now.strftime("%Y-%m-%d")
-    if kv_get("spin_" + uid) == today:
-        raise HTTPException(429, "Уже крутил сегодня")
-    kv_set("spin_" + uid, today)
-    yest = (now - timedelta(days=1)).strftime("%Y-%m-%d")
-    streak = int(kv_get("streak_" + uid, "0") or 0)
-    streak = streak + 1 if kv_get("spinprev_" + uid) == yest else 1
-    kv_set("spinprev_" + uid, today)
-    kv_set("streak_" + uid, str(streak))
-    idx = random.choice(range(len(SPIN_SECTORS)))
-    pts = SPIN_SECTORS[idx]
-    bonus = 5 if streak % 3 == 0 else 0
-    u = ensure_user(uid)
-    granted = game_grant(u["id"], pts + bonus, "🎁 Колесо удачи")
-    return {"ok": True, "index": idx, "points": granted, "bonus": bonus, "streak": streak, "balance": balance(u["id"])}
-@app.post("/api/app/catch")
-async def app_catch(request: Request):
-    try: d = await request.json()
-    except Exception: d = {}
-    uid = app_uid(request, d)
-    if not uid: raise HTTPException(401, "Открой приложение из бота")
-    score = int(d.get("score", 0) or 0)
-    score = max(0, min(60, score))
-    now = datetime.now()
-    today = now.strftime("%Y-%m-%d")
-    if kv_get("catch_" + uid) == today:
-        raise HTTPException(429, "Сегодня уже играл")
-    kv_set("catch_" + uid, today)
-    pts = min(5, score // 4)
-    if pts <= 0:
-        return {"ok": True, "points": 0, "balance": None}
-    u = ensure_user(uid)
-    granted = game_grant(u["id"], pts, "☕ Ловля стаканчиков")
-    return {"ok": True, "points": granted, "balance": balance(u["id"])}
-@app.post("/api/app/quiz")
-async def app_quiz(request: Request):
-    try: d = await request.json()
-    except Exception: d = {}
-    uid = app_uid(request, d)
-    if not uid: raise HTTPException(401, "Открой приложение из бота")
-    now = datetime.now()
-    today = now.strftime("%Y-%m-%d")
-    q = QUESTIONS[int(now.strftime("%j")) % len(QUESTIONS)]
-    if d.get("get"):
-        return {"ok": True, "q": q["q"], "a": q["a"], "done": kv_get("quiz_" + uid) == today}
-    if kv_get("quiz_" + uid) == today:
-        raise HTTPException(429, "Уже отвечал")
-    kv_set("quiz_" + uid, today)
-    correct = d.get("ans") == q["c"]
-    pts = 3 if correct else 0
-    u = ensure_user(uid)
-    granted = game_grant(u["id"], pts, "🧠 Вопрос дня")
-    return {"ok": True, "correct": correct, "points": granted, "right_txt": q["a"][q["c"]], "balance": balance(u["id"])}
-
-@app.post("/api/app/scratch")
-async def app_scratch(request: Request):
-    try: d = await request.json()
-    except Exception: d = {}
-    uid = app_uid(request, d)
-    if not uid: raise HTTPException(401, "Открой приложение из бота")
-    now = datetime.now()
-    today = now.strftime("%Y-%m-%d")
-    if kv_get("scratch_" + uid) == today:
-        raise HTTPException(429, "Сегодня уже стирал")
-    kv_set("scratch_" + uid, today)
-    pts = random.choice([0, 0, 5, 5, 5, 10])
-    u = ensure_user(uid)
-    granted = game_grant(u["id"], pts, "🎫 Скретч-карта")
-    return {"ok": True, "points": granted, "balance": balance(u["id"])}
-@app.post("/api/app/bet")
-async def app_bet(request: Request):
-    try: d = await request.json()
-    except Exception: d = {}
-    uid = app_uid(request, d)
-    if not uid: raise HTTPException(401, "Открой приложение из бота")
-    bet = int(d.get("bet", 0) or 0)
-    if bet not in (10, 20, 50): raise HTTPException(400, "Ставка 10/20/50")
-    now = datetime.now()
-    today = now.strftime("%Y-%m-%d")
-    cnt = int(kv_get(f"bet_{uid}_{today}", "0") or 0)
-    if cnt >= 5: raise HTTPException(429, "Лимит 5 ставок в день")
-    u = ensure_user(uid)
-    if balance(u["id"]) < bet: raise HTTPException(402, "Не хватает баллов")
-    kv_set(f"bet_{uid}_{today}", str(cnt + 1))
-    win_idx = random.randrange(3)
-    pick = int(d.get("pick", 0) or 0) % 3
-    win = pick == win_idx
-    with db() as c:
-        ok, nb = spend_points(u["id"], bet, f"🎰 Ставка {bet}")
-        if not ok: raise HTTPException(402, "Не хватает баллов")
-    prize = int(bet * 2.5) if win else 0
-    if win:
-        prize = game_grant(u["id"], prize, "🎰 Выигрыш")
-    return {"ok": True, "win": win, "win_idx": win_idx, "bet": bet, "prize": prize,
-            "balance": balance(u["id"]), "left": 5 - (cnt + 1)}
-@app.post("/api/app/match3")
-async def app_match3(request: Request):
-    try: d = await request.json()
-    except Exception: d = {}
-    uid = app_uid(request, d)
-    if not uid: raise HTTPException(401, "Открой приложение из бота")
-    score = max(0, min(20000, int(d.get("score", 0) or 0)))
-    now = datetime.now()
-    today = now.strftime("%Y-%m-%d")
-    if kv_get("m3_" + uid) == today:
-        raise HTTPException(429, "Награда за сегодня уже получена")
-    kv_set("m3_" + uid, today)
-    pts = min(8, score // 300)
-    if pts <= 0:
-        return {"ok": True, "points": 0, "balance": balance(ensure_user(uid)["id"])}
-    u = ensure_user(uid)
-    granted = game_grant(u["id"], pts, "🧩 3 в ряд")
-    return {"ok": True, "points": granted, "balance": balance(u["id"])}
-@app.post("/api/app/leader")
-async def app_leader(request: Request):
-    try: d = await request.json()
-    except Exception: d = {}
-    uid = app_uid(request, d)
-    if not uid: raise HTTPException(401, "Открой приложение из бота")
-    wk = datetime.now().strftime("%G-W%V")
-    with db_ro() as c:
-        rows = c.execute("SELECT key, CAST(value AS INT) v FROM kv WHERE key LIKE ? ORDER BY v DESC LIMIT 10", (f"lb_{wk}_%",)).fetchall()
-    out = []
-    for r in rows:
-        uidn = r["key"].split("_")[-1]
-        with db_ro() as c2:
-            u = c2.execute("SELECT full_name FROM users WHERE id=?", (int(uidn),)).fetchone()
-        out.append({"name": (u["full_name"] or "гость") if u else "гость", "pts": r["v"]})
-    return {"ok": True, "rows": out}
-G2048_REWARDS = {4: 3, 5: 6, 6: 10, 7: 15, 8: 25}
-
-@app.post("/api/app/g2048")
-async def app_g2048(request: Request):
-    try: d = await request.json()
-    except Exception: d = {}
-    uid = app_uid(request, d)
-    if not uid: raise HTTPException(401, "Открой приложение из бота")
-    best = max(0, min(8, int(d.get("best", 0) or 0)))
-    bk = f"g2048_{uid}_best"
-    if best > int(kv_get(bk, "0") or 0): kv_set(bk, str(best))
-    now = datetime.now()
-    key = f"g2048_{uid}_{now.strftime('%Y-%m-%d')}"
-    done = int(kv_get(key, "0") or 0)
-    want = 0
-    for lvl in sorted(G2048_REWARDS):
-        if best >= lvl: want = G2048_REWARDS[lvl]
-    grant = max(0, want - done)
-    granted = 0
-    if grant > 0:
-        granted = game_grant(ensure_user(uid)["id"], grant, "☕ 2048")
-        kv_set(key, str(done + granted))
-    return {"ok": True, "granted": granted, "balance": balance(ensure_user(uid)["id"])}
-@app.post("/api/app/tycoon")
-async def app_tycoon(request: Request):
-    try: d = await request.json()
-    except Exception: d = {}
-    uid = app_uid(request, d)
-    if not uid: raise HTTPException(401, "Открой приложение из бота")
-    u = ensure_user(uid)
-    key = f"tyc_{uid}"
-    now = time.time()
-    st = kv_get(key)
-    state = json.loads(st) if st else {"c": 0, "g": 0, "b": 0, "m": 0, "t": now}
-    if d.get("get"):
-        return {"ok": True, "state": state}
-    if d.get("save"):
-        s2 = d["save"]
-        state = {"c": max(0, min(1e9, float(s2.get("c", 0)))), "g": int(s2.get("g", 0)),
-                 "b": int(s2.get("b", 0)), "m": int(s2.get("m", 0)), "d": int(s2.get("d", 0)),
-                 "mk": int(s2.get("mk", 0)), "served": int(s2.get("served", 0)), "t": now}
-        kv_set(key, json.dumps(state))
-        return {"ok": True, "state": state}
-    if d.get("exchange"):
-        if state["c"] < 500: raise HTTPException(400, "Мало монет")
-        state["c"] -= 500
-        kv_set(key, json.dumps(state))
-        granted = game_grant(u["id"], 3, "🏪 Кофейный магнат")
-        return {"ok": True, "granted": granted, "state": state, "balance": balance(u["id"])}
-    return {"ok": True, "state": state}
-DAY_REWARDS = [5, 5, 10, 10, 15, 20, 50]
-
-@app.post("/api/app/day")
-async def app_day(request: Request):
-    try: d = await request.json()
-    except Exception: d = {}
-    uid = app_uid(request, d)
-    if not uid: raise HTTPException(401, "Открой приложение из бота")
-    u = ensure_user(uid)
-    now = datetime.now()
-    today = now.strftime("%Y-%m-%d")
-    yest = (now - timedelta(days=1)).strftime("%Y-%m-%d")
-    last = kv_get(f"dayl_{uid}")
-    day = int(kv_get(f"dayn_{uid}", "1") or 1)
-    claimed = kv_get(f"dayc_{uid}") == today
-    if not claimed:
-        if last == yest:
-            day = min(7, day + 1 if day < 7 else 1)
-        elif last and last != today:
-            day = 1
-        pts = DAY_REWARDS[day - 1]
-        granted = game_grant(u["id"], pts, f"📅 Бонус дня {day}")
-        kv_set(f"dayl_{uid}", today)
-        kv_set(f"dayn_{uid}", str(day))
-        kv_set(f"dayc_{uid}", today)
-        return {"ok": True, "claimed": False, "day": day, "pts": granted, "balance": balance(u["id"])}
-    return {"ok": True, "claimed": True, "day": day, "pts": 0, "balance": balance(u["id"])}
-
-@app.post("/api/app/achs")
-async def app_achs(request: Request):
-    try: d = await request.json()
-    except Exception: d = {}
-    uid = app_uid(request, d)
-    if not uid: raise HTTPException(401, "Открой приложение из бота")
-    u = ensure_user(uid)
-    got = []
-    # first_game / ten_games — считаем по kv с префиксом played_
-    plays = int(kv_get(f"plays_{uid}", "0") or 0)
-    if plays >= 1: got.append("first_game")
-    if plays >= 10: got.append("ten_games")
-    with db() as c:
-        total = c.execute("SELECT COALESCE(SUM(points_left),0) FROM points_batches WHERE user_id=? AND points_left>0", (u["id"],)).fetchone()[0]
-        ever = c.execute("SELECT COALESCE(SUM(CASE WHEN points>0 THEN points ELSE 0 END),0) FROM transactions WHERE user_id=?", (u["id"],)).fetchone()[0]
-    if ever >= 100: got.append("hundred")
-    if ever >= 1000: got.append("thousand")
-    if u["visits_count"] >= 60: got.append("vip")
-    ex = set(x for x in (kv_get(f"expl_{uid}") or "").split(",") if x)
-    if len(ex) >= 5: got.append("explorer")
-    if (int(kv_get(f"dayn_{uid}", "1") or 1)) >= 7: got.append("streak7")
-    if (int(kv_get(f"g2048_{uid}_best", "0") or 0)) >= 7: got.append("gold2048")
-    if (int(kv_get(f"g2048_{uid}_best", "0") or 0)) >= 8: got.append("sun2048")
-    return {"ok": True, "achs": got}
 # === РАБОЧЕЕ МЕСТО БАРИСТА (сайт) ===
 def staff_role(request: Request):
     if admin_ok(request): return "admin"
@@ -2532,12 +2222,14 @@ async def staff_points(request: Request):
         if not ok: raise HTTPException(400, f"Не хватает баллов, есть {nb}")
     audit(request, role, "баллы", f"{delta:+d} · {t['full_name'] or t['card_number']}")
     return {"ok": True, "balance": balance(t["id"])}
+
 @app.get("/staff/api/log")
 def staff_log(request: Request):
     if staff_role(request) != "admin": raise HTTPException(403, "Только админ")
     with db_ro() as c:
         rows = c.execute("SELECT * FROM audit ORDER BY id DESC LIMIT 100").fetchall()
     return {"ok": True, "rows": [dict(r) for r in rows]}
+
 def make_table_qr():
     try:
         me = http.get(f"{API}/me", headers=H, timeout=10).json()
