@@ -15,6 +15,7 @@ button{width:100%;padding:15px;border:none;border-radius:14px;background:linear-
 button.sec{background:#fff;color:var(--ink);border:2px solid #f0e2d0}
 button.mini{width:auto;padding:10px 14px;font-size:14px;margin:0 4px 4px 0;border-radius:10px}
 .res{font-weight:700;color:#C2540A;min-height:22px;margin:8px 0;white-space:pre-wrap;font-size:14px}
+.term{font-size:22px;color:var(--ink)}
 header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 header b{font-size:17px}
 header button{width:auto;padding:6px 14px;font-size:12px;background:#f0e2d0;color:var(--ink)}
@@ -141,9 +142,9 @@ async function doCheck(){
     if(!(amt>0)){res.textContent='❌ Введи сумму чека';return;}
     var maxp=Math.min(df.bal,Math.floor(amt*0.3));
     PEND={q:q,a:a,i:i};
-    res.innerHTML='👤 '+(df.name||df.card)+' · баланс ⭐ '+df.bal+'<br>Чек '+a+' р. Списываем баллы?<br>'+
-      (maxp>0?'<button class="mini" onclick="doFinal('+maxp+')">💳 Списать '+maxp+'</button>':'')+
-      '<button class="mini sec" onclick="doFinal(0)">Без баллов</button>';
+    res.innerHTML='👤 '+(df.name||df.card)+' · баланс ⭐ '+df.bal+' · чек '+a+' р.<br>'+
+      (maxp>0?'<button class="mini" onclick="doFinal('+maxp+')">💳 Списать '+maxp+' → в терминал '+(amt-maxp)+' ₽</button><br>':'')+
+      '<button class="mini sec" onclick="doFinal(0)">Без баллов → в терминал '+amt+' ₽</button>';
     return;
   }
   doFinal(0);
@@ -155,7 +156,9 @@ async function doFinal(deduct){
   if(r.status===404){res.textContent='❌ Клиент не найден. Оставь первое поле пустым — будет гостевой чек.';PEND=null;return;}
   if(!r.ok){res.textContent='❌ Ошибка '+r.status;PEND=null;return;}
   var d=await r.json();
-  res.textContent=d.guest?d.text:'✅ Гостевой чек сохранён';
+  var amt=parseFloat(data.a)||0;
+  var term='💰 В терминал: '+(amt-deduct)+' ₽';
+  res.innerHTML=(d.guest?d.text.replace(/\n/g,'<br>'):'✅ Гостевой чек сохранён')+'<br><b class="term">'+term+'</b>';
   document.getElementById('cq').value='';document.getElementById('ca').value='';document.getElementById('ci').value='';
   PEND=null;
 }
