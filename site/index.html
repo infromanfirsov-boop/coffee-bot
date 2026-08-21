@@ -448,7 +448,7 @@ async function checkCard(){
   resultBox.innerHTML='<div style="color:#fff;">⏳ Ищем…</div>';
   try{
     const full=phone.length>=10;
-    const res=await fetch((full?'/api/webcard?phone=':'/api/card?phone=')+phone,{headers:{'X-Api-Key':'utro_coffee_2024_secret_key_7a9b3c'}});
+const res=await fetch((full?'/api/webcard?phone=':'/api/public/card?phone=')+phone);
     if(res.status===403){resultBox.innerHTML='<div style="color:#FFB4A8;">Ошибка доступа</div>';return;}
     if(res.status===429){resultBox.innerHTML='<div style="color:#FFB4A8;">Слишком часто, подождите минуту</div>';return;}
     const data=await res.json();
