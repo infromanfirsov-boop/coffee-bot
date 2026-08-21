@@ -1813,6 +1813,9 @@ async def lifespan(app):
     yield
 
 app = FastAPI(lifespan=lifespan)
+@app.exception_handler(404)
+async def nf(request: Request, exc):
+    return HTMLResponse("<html style='font-family:sans-serif;text-align:center;padding:60px'><h1>404 ☕</h1><p>Такой страницы нет — возможно, её выпили.<br><a href='/'>Вернуться на главную</a></p></html>", status_code=404)
 app.add_middleware(CORSMiddleware,
                    allow_origins=["https://утро-кофе.рф", "https://xn----jtboocinhp.xn--p1ai", "http://127.0.0.1:8000"],
                    allow_methods=["GET", "POST"],
@@ -1842,6 +1845,13 @@ def api_card(phone: str = "", x_api_key: str = Header(default=""), request: Requ
         v = r["visits_count"]
     return {"ok": True, "points": bal, "visits": v, "level": lvl_name(v), "pct": pct(v)}
 
+@app.get("/robots.txt")
+def robots():
+    return Response(content="User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /staff\nSitemap: https://xn----jtboocinhp.xn--p1ai/sitemap.xml\n", media_type="text/plain")
+
+@app.get("/sitemap.xml")
+def sitemap():
+    return Response(content='<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n<url><loc>https://xn----jtboocinhp.xn--p1ai/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>\n</urlset>\n', media_type="application/xml")
 @app.get("/health")
 def health(): return {"status": "ok"}
 
