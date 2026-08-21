@@ -2468,6 +2468,26 @@ async def staff_inv_move(request: Request):
                   ("админ" if role == "admin" else "бариста", role, "склад: " + reason, f"{r['name']} {delta:+g} {r['unit']}"))
     return {"ok": True}
 
+@app.post("/staff/api/points")
+async def staff_points(request: Request):
+    role = staff_role(request)
+    if not role: raise HTTPException(401, "Войдите")
+    try: d = await request.json()
+    except Exception: raise HTTPException(400, "Bad JSON")
+    t = find_user(str(d.get("query", "")))
+    if not t: raise HTTPException(404, "Не найден")
+    delta = int(d.get("delta", 0) or 0)
+    if delta == 0: raise HTTPException(400, "Нужно число")
+    if delta > 0:
+        with db() as c:
+            _batch(c, t["id"], delta, "manual", "➕ Бариста")
+            c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)",
+                      (t["id"], "accrual", delta, "➕ Бариста"))
+    else:
+        ok, nb = spend_points(t["id"], -delta, "➖ Бариста")
+        if not ok: raise HTTPException(400, f"Не хватает баллов, есть {nb}")
+    audit(request, role, "баллы", f"{delta:+d} · {t['full_name'] or t['card_number']}")
+    return {"ok": True, "balance": balance(t["id"])}
 @app.get("/staff/api/log")
 def staff_log(request: Request):
     if staff_role(request) != "admin": raise HTTPException(403, "Только админ")
