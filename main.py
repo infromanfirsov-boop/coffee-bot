@@ -2374,12 +2374,18 @@ async def staff_check(request: Request):
     if amount <= 0: raise HTTPException(400, "Сумма > 0")
     items = [x.strip().lower() for x in str(d.get("items", "")).split(",") if x.strip()]
     q = str(d.get("query", "")).strip()
+    deduct = int(d.get("deduct", 0) or 0)
     if q:
         t = find_user(q)
         if not t: raise HTTPException(404, "Клиент не найден")
+        pre = ""
+        if deduct > 0:
+            ok, nb = spend_points(t["id"], deduct, f"{CARD} Оплата баллами")
+            if not ok: raise HTTPException(400, f"Не хватает баллов, баланс {nb}")
+            pre = f"{CARD} Списано {deduct} баллов\n"
         r = apply_cashback(t, amount, items)
-        audit(request, role, "чек", f"{amount:.0f} р. · {t['full_name'] or t['card_number']}")
-        return {"ok": True, "guest": True, "text": r["text"]}
+        audit(request, role, "чек", f"{amount:.0f} р." + (f" · −{deduct} баллов" if deduct else "") + f" · {t['full_name'] or t['card_number']}")
+        return {"ok": True, "guest": True, "text": pre + r["text"]}
     with db() as c:
         rid = uuid.uuid4().hex[:8]
         if items:
