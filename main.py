@@ -2310,8 +2310,8 @@ async def app_achs(request: Request):
     return {"ok": True, "achs": got}
 # === РАБОЧЕЕ МЕСТО БАРИСТА (сайт) ===
 def staff_role(request: Request):
+    if admin_ok(request): return "admin"
     tok = request.cookies.get("utro_staff", "")
-    if not tok: return None
     v = kv_get("staff_tok_" + tok)
     if not v: return None
     try:
