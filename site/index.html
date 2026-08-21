@@ -451,7 +451,7 @@ async function checkCard(){
   resultBox.innerHTML='<div style="color:#fff;">⏳ Ищем…</div>';
   try{
     const full=phone.length>=10;
-const res=await fetch((full?'/api/webcard?phone=':'/api/public/card?phone=')+phone);
+const res=await fetch('/api/public/card?phone='+phone);
     if(res.status===403){resultBox.innerHTML='<div style="color:#FFB4A8;">Ошибка доступа</div>';return;}
     if(res.status===429){resultBox.innerHTML='<div style="color:#FFB4A8;">Слишком часто, подождите минуту</div>';return;}
     const data=await res.json();
