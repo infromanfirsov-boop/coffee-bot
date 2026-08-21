@@ -3,30 +3,35 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Утро — рабочее место бариста</title>
+<title>Утро — смена</title>
 <style>
 :root{--ink:#2B1A12;--sun:#FF7A00;--sun2:#FF9E3D}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{font-family:'Manrope',system-ui,sans-serif;background:linear-gradient(180deg,#FFF9F2,#FFEFD9);color:var(--ink);min-height:100vh;max-width:520px;margin:0 auto;padding:14px}
 h1{font-size:20px;margin-bottom:12px}
-h3{font-size:14px;margin:14px 0 6px}
-input{width:100%;padding:12px;border-radius:12px;border:2px solid #f0e2d0;background:#fff;font-size:15px;margin-bottom:8px;font-family:inherit}
-button{width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;margin-bottom:6px}
+h3{font-size:14px;margin:14px 0 6px;color:#8a7666}
+input{width:100%;padding:14px;border-radius:14px;border:2px solid #f0e2d0;background:#fff;font-size:16px;margin-bottom:8px;font-family:inherit}
+button{width:100%;padding:15px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;font-weight:800;font-size:16px;cursor:pointer;font-family:inherit;margin-bottom:8px}
 button.sec{background:#fff;color:var(--ink);border:2px solid #f0e2d0}
-.res{font-weight:700;color:#C2540A;min-height:20px;margin:8px 0;white-space:pre-wrap;font-size:14px}
+button.mini{width:auto;padding:10px 14px;font-size:14px;margin:0 4px 4px 0;border-radius:10px}
+.res{font-weight:700;color:#C2540A;min-height:22px;margin:8px 0;white-space:pre-wrap;font-size:14px}
 header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-header b{font-size:16px}
-header button{width:auto;padding:6px 12px;font-size:12px;background:#f0e2d0;color:var(--ink)}
-nav{display:flex;gap:6px;margin-bottom:12px}
-nav button{flex:1;padding:10px 4px;font-size:12px;background:#fff;color:var(--ink);border:2px solid #f0e2d0;margin:0}
+header b{font-size:17px}
+header button{width:auto;padding:6px 14px;font-size:12px;background:#f0e2d0;color:var(--ink)}
+nav{display:flex;gap:6px;margin-bottom:14px}
+nav button{flex:1;padding:12px 2px;font-size:13px;background:#fff;color:var(--ink);border:2px solid #f0e2d0;margin:0}
 nav button.on{background:linear-gradient(135deg,var(--sun),var(--sun2));color:#fff;border-color:transparent}
-.row{background:#fff;border:2px solid #f0e2d0;border-radius:14px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px}
-.row.low{border-color:#B3372F;background:#FDECEC}
-.row b{font-size:14px}
-.row small{display:block;color:#8a7666;font-size:11px}
-.mini{width:auto;padding:6px 10px;font-size:13px;margin:0;border-radius:8px}
-.logrow{background:#fff;border-radius:10px;padding:8px 10px;margin-bottom:6px;font-size:12px}
+.card{background:#fff;border-radius:18px;padding:16px;margin-bottom:10px;box-shadow:0 6px 18px rgba(43,26,18,.08)}
+.card .big{font-size:26px;font-weight:800}
+.row{background:#fff;border:2px solid #f0e2d0;border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.row b{font-size:15px}
+.row small{display:block;color:#8a7666;font-size:12px;margin-top:2px}
+.row.out{border-color:#B3372F;background:#FDECEC}
+.row.loww{border-color:#F5A623;background:#FFF7E6}
+.qty{font-weight:800;font-size:16px;white-space:nowrap}
+.logrow{background:#fff;border-radius:12px;padding:10px 12px;margin-bottom:6px;font-size:13px}
 .logrow b{color:var(--sun)}
+.hint{color:#8a7666;font-size:12px;margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -39,57 +44,79 @@ nav button.on{background:linear-gradient(135deg,var(--sun),var(--sun2));color:#f
   <header><b id="roleLbl">☕ бариста</b><button onclick="logout()">выход</button></header>
   <nav>
     <button data-t="check" class="on" onclick="tab('check')">🧾 Чек</button>
-    <button data-t="guest" onclick="tab('guest')">👤 Гость</button>
+    <button data-t="guest" onclick="tab('guest')">👤 Клиент</button>
     <button data-t="inv" onclick="tab('inv')">📦 Склад</button>
     <button data-t="log" id="logTab" style="display:none" onclick="tab('log')">📋 Лог</button>
   </nav>
+
   <section id="t-check">
-    <input id="cq" placeholder="Телефон / карта / имя (или пусто)">
-    <input id="ca" type="number" inputmode="decimal" placeholder="Сумма чека, ₽">
-    <input id="ci" placeholder="Товары: латте, круассан (необязательно)">
-    <button onclick="doCheck()">Провести</button>
-    <div class="res" id="cres"></div>
+    <div class="card">
+      <div class="hint">1️⃣ Клиент с картой? Введи телефон или имя. Нет карты — оставь пусто.</div>
+      <input id="cq" placeholder="Телефон / имя (необязательно)">
+      <div class="hint">2️⃣ Сумма чека</div>
+      <input id="ca" type="number" inputmode="decimal" placeholder="Например: 350">
+      <div style="margin-bottom:8px">
+        <button class="mini sec" onclick="setA(150)">150</button><button class="mini sec" onclick="setA(250)">250</button><button class="mini sec" onclick="setA(350)">350</button><button class="mini sec" onclick="setA(500)">500</button>
+      </div>
+      <div class="hint">3️⃣ Что взяли (для статистики, необязательно)</div>
+      <input id="ci" placeholder="латте, круассан">
+      <button onclick="doCheck()">✅ Провести чек</button>
+      <div class="res" id="cres"></div>
+    </div>
   </section>
+
   <section id="t-guest" style="display:none">
-    <h3>Новая карта гостя</h3>
-    <input id="gn" placeholder="Имя">
-    <input id="gp" type="tel" placeholder="Телефон 79991234567">
-    <button onclick="doNew()">Создать карту</button>
-    <div class="res" id="gres"></div>
-    <h3>Бонусы гостю</h3>
-    <input id="bq" placeholder="Телефон / карта / имя">
-    <button class="sec" onclick="doBonus('eco')">🌱 Своя кружка +10</button>
-    <button class="sec" onclick="doBonus('book')">📚 Книга +20</button>
-    <div class="res" id="bres"></div>
+    <div class="card">
+      <div class="hint">Найди клиента — увидишь баланс и сможешь списать/начислить баллы.</div>
+      <input id="gq" placeholder="Телефон / карта / имя">
+      <button onclick="doFind()">🔍 Найти</button>
+      <div id="gcard" style="display:none" class="card" >
+        <div id="gname" class="big"></div>
+        <small id="ginfo" style="color:#8a7666"></small>
+        <div style="margin-top:10px">
+          <button class="mini sec" onclick="doPts(50)">+50</button>
+          <button class="mini sec" onclick="doPts(-50)">−50</button>
+          <button class="mini sec" onclick="doPtsAsk()">✏️ Сумма</button>
+          <button class="mini sec" onclick="doBonus('eco')">🌱 +10</button>
+          <button class="mini sec" onclick="doBonus('book')">📚 +20</button>
+        </div>
+      </div>
+      <div class="res" id="gres"></div>
+    </div>
+    <div class="card">
+      <div class="hint">Новая карта гостю</div>
+      <input id="gn" placeholder="Имя">
+      <input id="gp" type="tel" placeholder="Телефон 79991234567">
+      <button onclick="doNew()">🎁 Создать карту</button>
+      <div class="res" id="nres"></div>
+    </div>
   </section>
+
   <section id="t-inv" style="display:none">
+    <div class="hint">Жми −1 когда взял со склада, +1 когда приехало. ✏️ — пересчитать вручную.</div>
     <div id="invlist"></div>
-    <h3>Приход / новый товар</h3>
-    <input id="in" placeholder="Название (молоко, стаканы…)">
-    <input id="iu" placeholder="Ед.: шт/кг/л" style="width:110px">
-    <input id="iq" type="number" inputmode="decimal" placeholder="Кол-во" style="width:90px">
-    <input id="im" type="number" inputmode="decimal" placeholder="Минимум" style="width:90px">
-    <button onclick="invAdd()">➕ Приход</button>
+    <div class="card">
+      <div class="hint">➕ Добавить товар / приход</div>
+      <input id="in" placeholder="Название: молоко, стаканы…">
+      <input id="iq" type="number" inputmode="decimal" placeholder="Сколько">
+      <button onclick="invAdd()">Добавить</button>
+    </div>
   </section>
+
   <section id="t-log" style="display:none"><div id="loglist"></div></section>
 </div>
 <script>
-var ROLE='';
-async function api(path,body){
-  var r=await fetch(path,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
-  return r;
-}
+var ROLE='',GQ='';
+async function api(path,body){return fetch(path,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});}
 async function login(){
   var r=await api('/staff/login',{password:document.getElementById('pw').value});
   if(!r.ok){alert('Неверный пароль');return;}
-  var d=await r.json();start(d.role);
-}
-function start(role){
-  ROLE=role;
+  var d=await r.json();
+  ROLE=d.role;
   document.getElementById('login').style.display='none';
   document.getElementById('app').style.display='block';
-  document.getElementById('roleLbl').textContent=role==='admin'?'☕ админ':'☕ бариста';
-  if(role==='admin')document.getElementById('logTab').style.display='';
+  document.getElementById('roleLbl').textContent=ROLE==='admin'?'☕ админ':'☕ бариста';
+  if(ROLE==='admin')document.getElementById('logTab').style.display='';
   tab('check');loadInv();
 }
 function logout(){api('/staff/logout',{}).then(function(){location.reload();});}
@@ -99,54 +126,91 @@ function tab(t){
   if(t==='inv')loadInv();
   if(t==='log')loadLog();
 }
+function setA(v){document.getElementById('ca').value=v;}
 async function doCheck(){
-  var res=document.getElementById('cres');res.textContent='…';
+  var res=document.getElementById('cres');res.textContent='⏳…';
   var r=await api('/staff/api/check',{query:document.getElementById('cq').value,amount:document.getElementById('ca').value,items:document.getElementById('ci').value});
-  if(r.status===404){res.textContent='Клиент не найден — оставь поле пустым для гостевого чека';return;}
-  if(!r.ok){res.textContent='Ошибка: '+r.status;return;}
+  if(r.status===404){res.textContent='❌ Клиент не найден. Оставь первое поле пустым — будет гостевой чек.';return;}
+  if(!r.ok){res.textContent='❌ Ошибка '+r.status;return;}
   var d=await r.json();
   res.textContent=d.guest?d.text:'✅ Гостевой чек сохранён';
   document.getElementById('cq').value='';document.getElementById('ca').value='';document.getElementById('ci').value='';
 }
-async function doNew(){
-  var res=document.getElementById('gres');res.textContent='…';
-  var r=await api('/staff/api/newcard',{name:document.getElementById('gn').value,phone:document.getElementById('gp').value});
-  if(!r.ok){res.textContent='Ошибка: '+(r.status===409?'телефон уже зарегистрирован':r.status);return;}
+async function doFind(){
+  GQ=document.getElementById('gq').value;
+  var res=document.getElementById('gres');res.textContent='⏳…';
+  var r=await api('/staff/api/find',{query:GQ});
   var d=await r.json();
-  res.textContent='✅ Карта создана: '+d.card+'\nГость увидит её в приложении по своему телефону.';
-  document.getElementById('gn').value='';document.getElementById('gp').value='';
+  if(!d.ok){res.textContent='❌ Не найден';document.getElementById('gcard').style.display='none';return;}
+  res.textContent='';
+  document.getElementById('gcard').style.display='block';
+  document.getElementById('gname').textContent=d.name||d.card;
+  document.getElementById('ginfo').textContent='⭐ '+d.bal+' баллов · ☕ '+d.visits+' визитов · '+d.card;
+}
+async function doPts(delta){
+  var r=await api('/staff/api/points',{query:GQ,delta:delta});
+  var res=document.getElementById('gres');
+  if(!r.ok){res.textContent='❌ '+(r.status===400?'Не хватает баллов':'Ошибка');return;}
+  var d=await r.json();
+  res.textContent='✅ Готово. Баланс: ⭐ '+d.balance;
+  doFindSilent();
+}
+function doPtsAsk(){
+  var v=prompt('Сколько баллов? Со знаком: -100 или +50');
+  if(v===null)return;
+  var n=parseInt(v);
+  if(isNaN(n)||n===0)return;
+  doPts(n);
+}
+async function doFindSilent(){
+  var r=await api('/staff/api/find',{query:GQ});
+  var d=await r.json();
+  if(d.ok)document.getElementById('ginfo').textContent='⭐ '+d.bal+' баллов · ☕ '+d.visits+' визитов · '+d.card;
 }
 async function doBonus(kind){
-  var res=document.getElementById('bres');res.textContent='…';
-  var r=await api('/staff/api/bonus',{query:document.getElementById('bq').value,kind:kind});
-  if(!r.ok){res.textContent=r.status===404?'Не найден':'Ошибка';return;}
+  var r=await api('/staff/api/bonus',{query:GQ,kind:kind});
+  var res=document.getElementById('gres');
+  if(!r.ok){res.textContent='❌ Не найден';return;}
   var d=await r.json();
-  res.textContent='✅ +'+d.pts+' баллов. Баланс гостя: '+d.balance;
+  res.textContent='✅ +'+d.pts+'. Баланс: ⭐ '+d.balance;
+  doFindSilent();
+}
+async function doNew(){
+  var res=document.getElementById('nres');res.textContent='⏳…';
+  var r=await api('/staff/api/newcard',{name:document.getElementById('gn').value,phone:document.getElementById('gp').value});
+  if(!r.ok){res.textContent=r.status===409?'❌ Телефон уже зарегистрирован':'❌ Ошибка';return;}
+  var d=await r.json();
+  res.textContent='✅ Карта создана: '+d.card;
+  document.getElementById('gn').value='';document.getElementById('gp').value='';
 }
 async function loadInv(){
   var r=await api('/staff/api/inv');if(!r.ok)return;
   var d=await r.json();
   document.getElementById('invlist').innerHTML=d.rows.map(function(x){
-    var low=x.qty<=x.min_qty;
-    return '<div class="row'+(low?' low':'')+'"><div><b>'+x.name+'</b><small>'+(low?'⚠️ мало! ':'')+x.qty+' '+x.unit+' · мин '+x.min_qty+'</small></div>'+
-      '<div><button class="mini sec" onclick="invMove('+x.id+',-1)">−1</button><button class="mini sec" onclick="invMove('+x.id+',1)">+1</button><button class="mini" onclick="invAsk('+x.id+')">✏️</button></div></div>';
-  }).join('')||'<p style="color:#8a7666">Склад пуст — добавь первый товар ниже.</p>';
+    var cls=x.qty<=0?' out':(x.qty<=5?' loww':'');
+    var st=x.qty<=0?'⛔ кончилось':(x.qty<=5?'⚠️ мало':'');
+    return '<div class="row'+cls+'"><div><b>'+x.name+'</b><small>'+x.unit+' '+st+'</small></div>'+
+      '<div style="text-align:right"><span class="qty">'+x.qty+'</span><br>'+
+      '<button class="mini sec" onclick="invMove('+x.id+',-1)">−1</button>'+
+      '<button class="mini sec" onclick="invMove('+x.id+',1)">+1</button>'+
+      '<button class="mini sec" onclick="invAsk('+x.id+','+x.qty+')">✏️</button></div></div>';
+  }).join('')||'<p style="color:#8a7666">Склад пуст — добавь товар ниже 👇</p>';
 }
 async function invMove(id,delta){
-  await api('/staff/api/inv/move',{id:id,delta:delta,reason:delta<0?'списание':'корректировка'});
+  await api('/staff/api/inv/move',{id:id,delta:delta,reason:delta<0?'списание':'приход'});
   loadInv();
 }
-function invAsk(id){
-  var v=prompt('Сколько добавить/списать? (например: -2 или 10)');
+function invAsk(id,cur){
+  var v=prompt('Сколько сейчас на складе? (было '+cur+')');
   if(v===null)return;
   var n=parseFloat(v.replace(',','.'));
-  if(isNaN(n)||n===0)return;
-  api('/staff/api/inv/move',{id:id,delta:n,reason:n<0?'списание':'приход'}).then(loadInv);
+  if(isNaN(n)||n<0)return;
+  api('/staff/api/inv/move',{id:id,delta:n-cur,reason:'пересчёт'}).then(loadInv);
 }
 async function invAdd(){
-  var r=await api('/staff/api/inv/add',{name:document.getElementById('in').value,unit:document.getElementById('iu').value,qty:document.getElementById('iq').value,min:document.getElementById('im').value});
+  var r=await api('/staff/api/inv/add',{name:document.getElementById('in').value,unit:'шт',qty:document.getElementById('iq').value,min:0});
   if(r.ok){document.getElementById('in').value='';document.getElementById('iq').value='';loadInv();}
-  else alert('Ошибка');
+  else alert('Ошибка: проверь название');
 }
 async function loadLog(){
   var r=await api('/staff/api/log');if(!r.ok)return;
