@@ -94,6 +94,7 @@ WINBACK_CD = _env_int("WINBACK_COOLDOWN_DAYS", "30")
 REVIEW_BONUS = _env_int("REVIEW_BONUS", "50")
 BOOK_BONUS = _env_int("BOOK_BONUS", "20")
 ADMIN_PASS = os.getenv("ADMIN_PASSWORD", "utro_admin_2024")
+STAFF_PASS = os.getenv("STAFF_PASSWORD", "utro_staff_2024")
 BACKUP_DIR = os.getenv("BACKUP_DIR", "backups")
 BACKUP_KEEP = _env_int("BACKUP_KEEP", "7")
 SITE_API_KEY = os.getenv("SITE_API_KEY", "utro_coffee_2024_secret_key_7a9b3c")
@@ -212,6 +213,8 @@ CREATE TABLE IF NOT EXISTS review_requests(id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER, status TEXT DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS walkins(id INTEGER PRIMARY KEY AUTOINCREMENT, amount REAL, item TEXT, receipt_id TEXT DEFAULT '', created_at TIMESTAMP);
+CREATE TABLE IF NOT EXISTS inventory(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, unit TEXT DEFAULT 'шт', qty REAL DEFAULT 0, min_qty REAL DEFAULT 0, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY AUTOINCREMENT, who TEXT, role TEXT, action TEXT, detail TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS kv(key TEXT PRIMARY KEY, value TEXT);
 CREATE INDEX IF NOT EXISTS i_card ON users(card_number);
 CREATE INDEX IF NOT EXISTS i_phone ON users(phone);
@@ -2305,6 +2308,172 @@ async def app_achs(request: Request):
     if (int(kv_get(f"g2048_{uid}_best", "0") or 0)) >= 7: got.append("gold2048")
     if (int(kv_get(f"g2048_{uid}_best", "0") or 0)) >= 8: got.append("sun2048")
     return {"ok": True, "achs": got}
+# === РАБОЧЕЕ МЕСТО БАРИСТА (сайт) ===
+def staff_role(request: Request):
+    tok = request.cookies.get("utro_staff", "")
+    if not tok: return None
+    v = kv_get("staff_tok_" + tok)
+    if not v: return None
+    try:
+        d = json.loads(v)
+        if datetime.fromisoformat(d["exp"]) > datetime.now(): return d["role"]
+    except Exception: pass
+    return None
+
+def audit(request, role, action, detail):
+    with db() as c:
+        c.execute("INSERT INTO audit(who,role,action,detail) VALUES(?,?,?,?)",
+                  ("админ" if role == "admin" else "бариста", role, action, detail))
+
+@app.get("/staff", response_class=HTMLResponse)
+def staff_page():
+    p = os.path.join(BASE, "site", "staff.html")
+    try:
+        with open(p, encoding="utf-8") as f: return f.read()
+    except OSError:
+        return "<h1>staff.html не найден</h1>"
+
+@app.post("/staff/login")
+async def staff_login(request: Request):
+    try: d = await request.json()
+    except Exception: raise HTTPException(400, "Bad JSON")
+    pw = d.get("password", "")
+    role = "admin" if pw == ADMIN_PASS else ("staff" if pw == STAFF_PASS else None)
+    if not role: raise HTTPException(403, "Неверный пароль")
+    tok = uuid.uuid4().hex
+    kv_set("staff_tok_" + tok, json.dumps({"role": role, "exp": (datetime.now() + timedelta(hours=12)).isoformat()}))
+    resp = JSONResponse({"ok": True, "role": role})
+    resp.set_cookie("utro_staff", tok, max_age=43200, httponly=True, samesite="lax")
+    return resp
+
+@app.post("/staff/logout")
+def staff_logout(request: Request):
+    tok = request.cookies.get("utro_staff", "")
+    if tok:
+        with db() as c: c.execute("DELETE FROM kv WHERE key=?", ("staff_tok_" + tok,))
+    resp = JSONResponse({"ok": True})
+    resp.delete_cookie("utro_staff")
+    return resp
+
+@app.post("/staff/api/find")
+async def staff_find(request: Request):
+    if not staff_role(request): raise HTTPException(401, "Войдите")
+    try: d = await request.json()
+    except Exception: d = {}
+    t = find_user(str(d.get("query", "")))
+    if not t: return {"ok": False}
+    return {"ok": True, "name": t["full_name"], "card": t["card_number"], "bal": balance(t["id"]), "visits": t["visits_count"]}
+
+@app.post("/staff/api/check")
+async def staff_check(request: Request):
+    role = staff_role(request)
+    if not role: raise HTTPException(401, "Войдите")
+    try: d = await request.json()
+    except Exception: raise HTTPException(400, "Bad JSON")
+    amount = float(d.get("amount", 0) or 0)
+    if amount <= 0: raise HTTPException(400, "Сумма > 0")
+    items = [x.strip().lower() for x in str(d.get("items", "")).split(",") if x.strip()]
+    q = str(d.get("query", "")).strip()
+    if q:
+        t = find_user(q)
+        if not t: raise HTTPException(404, "Клиент не найден")
+        r = apply_cashback(t, amount, items)
+        audit(request, role, "чек", f"{amount:.0f} р. · {t['full_name'] or t['card_number']}")
+        return {"ok": True, "guest": True, "text": r["text"]}
+    with db() as c:
+        rid = uuid.uuid4().hex[:8]
+        if items:
+            c.executemany("INSERT INTO walkins(amount,item,receipt_id,created_at) VALUES(?,?,?,?)",
+                          [(amount, it, rid, datetime.now()) for it in items])
+        else:
+            c.execute("INSERT INTO walkins(amount,item,receipt_id,created_at) VALUES(?,?,?,?)", (amount, "", rid, datetime.now()))
+    audit(request, role, "гостевой чек", f"{amount:.0f} р.")
+    return {"ok": True, "guest": False}
+
+@app.post("/staff/api/newcard")
+async def staff_newcard(request: Request):
+    role = staff_role(request)
+    if not role: raise HTTPException(401, "Войдите")
+    try: d = await request.json()
+    except Exception: raise HTTPException(400, "Bad JSON")
+    name = str(d.get("name", "")).strip()
+    phone = norm_phone(str(d.get("phone", "")))
+    if len(name) < 2 or not phone: raise HTTPException(400, "Имя и телефон обязательны")
+    with db() as c:
+        if c.execute("SELECT 1 FROM users WHERE phone=?", (phone,)).fetchone():
+            raise HTTPException(409, "Телефон уже зарегистрирован")
+    nid = "off_" + uuid.uuid4().hex[:12]
+    u2 = ensure_user(nid, name, WELCOME)
+    with db() as c:
+        c.execute("UPDATE users SET phone=? WHERE id=?", (phone, u2["id"]))
+    audit(request, role, "новая карта", f"{name} · {phone}")
+    return {"ok": True, "card": u2["card_number"]}
+
+@app.post("/staff/api/bonus")
+async def staff_bonus(request: Request):
+    role = staff_role(request)
+    if not role: raise HTTPException(401, "Войдите")
+    try: d = await request.json()
+    except Exception: raise HTTPException(400, "Bad JSON")
+    t = find_user(str(d.get("query", "")))
+    if not t: raise HTTPException(404, "Не найден")
+    kind = d.get("kind")
+    pts = ECO_PTS if kind == "eco" else BOOK_BONUS
+    comment = "🌱 Своя кружка" if kind == "eco" else "📚 Книга в буккроссинг"
+    with db() as c:
+        _batch(c, t["id"], pts, kind, comment)
+        c.execute("INSERT INTO transactions(user_id,type,points,comment) VALUES(?,?,?,?)", (t["id"], "accrual", pts, comment))
+    audit(request, role, "бонус", f"{comment} · {t['full_name'] or t['card_number']}")
+    return {"ok": True, "pts": pts, "balance": balance(t["id"])}
+
+@app.get("/staff/api/inv")
+def staff_inv(request: Request):
+    if not staff_role(request): raise HTTPException(401, "Войдите")
+    with db_ro() as c:
+        rows = c.execute("SELECT * FROM inventory ORDER BY name").fetchall()
+    return {"ok": True, "rows": [dict(r) for r in rows]}
+
+@app.post("/staff/api/inv/add")
+async def staff_inv_add(request: Request):
+    role = staff_role(request)
+    if not role: raise HTTPException(401, "Войдите")
+    try: d = await request.json()
+    except Exception: raise HTTPException(400, "Bad JSON")
+    name = str(d.get("name", "")).strip()
+    if len(name) < 2: raise HTTPException(400, "Название")
+    unit = str(d.get("unit", "шт") or "шт")
+    qty = float(d.get("qty", 0) or 0)
+    minq = float(d.get("min", 0) or 0)
+    with db() as c:
+        c.execute("INSERT INTO inventory(name,unit,qty,min_qty) VALUES(?,?,?,?) ON CONFLICT(name) DO UPDATE SET qty=qty+?, updated_at=CURRENT_TIMESTAMP",
+                  (name, unit, qty, minq, qty))
+        c.execute("INSERT INTO audit(who,role,action,detail) VALUES(?,?,?,?)",
+                  ("админ" if role == "admin" else "бариста", role, "склад: приход", f"{name} +{qty:g} {unit}"))
+    return {"ok": True}
+
+@app.post("/staff/api/inv/move")
+async def staff_inv_move(request: Request):
+    role = staff_role(request)
+    if not role: raise HTTPException(401, "Войдите")
+    try: d = await request.json()
+    except Exception: raise HTTPException(400, "Bad JSON")
+    iid = int(d.get("id", 0))
+    delta = float(d.get("delta", 0) or 0)
+    reason = str(d.get("reason", "списание"))
+    with db() as c:
+        r = c.execute("SELECT * FROM inventory WHERE id=?", (iid,)).fetchone()
+        if not r: raise HTTPException(404, "Нет товара")
+        c.execute("UPDATE inventory SET qty=MAX(0, qty+?), updated_at=CURRENT_TIMESTAMP WHERE id=?", (delta, iid))
+        c.execute("INSERT INTO audit(who,role,action,detail) VALUES(?,?,?,?)",
+                  ("админ" if role == "admin" else "бариста", role, "склад: " + reason, f"{r['name']} {delta:+g} {r['unit']}"))
+    return {"ok": True}
+
+@app.get("/staff/api/log")
+def staff_log(request: Request):
+    if staff_role(request) != "admin": raise HTTPException(403, "Только админ")
+    with db_ro() as c:
+        rows = c.execute("SELECT * FROM audit ORDER BY id DESC LIMIT 100").fetchall()
+    return {"ok": True, "rows": [dict(r) for r in rows]}
 def make_table_qr():
     try:
         me = http.get(f"{API}/me", headers=H, timeout=10).json()
